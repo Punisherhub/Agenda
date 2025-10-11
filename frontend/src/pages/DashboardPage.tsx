@@ -1,9 +1,9 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { agendamentosApi } from '../services/api'
-import { format } from 'date-fns'
-import { CalendarPlus, Search } from 'lucide-react'
+import { agendamentosApi, relatoriosApi, materiaisApi } from '../services/api'
+import { format, subDays } from 'date-fns'
+import { CalendarPlus, Search, Package, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react'
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate()
@@ -20,6 +20,21 @@ const DashboardPage: React.FC = () => {
     })
   })
 
+  // Buscar estatísticas do mês
+  const { data: estatisticas } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => relatoriosApi.getDashboard({
+      data_inicio: format(subDays(hoje, 30), 'yyyy-MM-dd'),
+      data_fim: format(hoje, 'yyyy-MM-dd')
+    })
+  })
+
+  // Buscar materiais com estoque baixo
+  const { data: materiais } = useQuery({
+    queryKey: ['materiais-dashboard'],
+    queryFn: () => materiaisApi.list({ ativo: true })
+  })
+
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   const handleNovoAgendamento = () => {
@@ -29,6 +44,16 @@ const DashboardPage: React.FC = () => {
   const handleBuscarCliente = () => {
     navigate('/clientes')
   }
+
+  // Calcular materiais com estoque baixo
+  const materiaisBaixoEstoque = materiais?.materiais?.filter((m: any) =>
+    m.quantidade_minima && m.quantidade_estoque <= m.quantidade_minima
+  ) || []
+
+  // Calcular valor total do estoque
+  const valorTotalEstoque = estatisticas?.estoque_materiais?.reduce(
+    (total: number, item: any) => total + item.valor_total_estoque, 0
+  ) || 0
 
   return (
     <div className="space-y-6">
@@ -42,28 +67,68 @@ const DashboardPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Cards de resumo */}
+      {/* Ações Rápidas */}
+      <div className="card p-6">
+        <h3 className="text-lg font-semibold mb-4">Ações Rápidas</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button
+            onClick={handleNovoAgendamento}
+            className="btn-primary py-3 flex items-center justify-center gap-2"
+          >
+            <CalendarPlus className="w-5 h-5" />
+            Novo Agendamento
+          </button>
+          <button
+            onClick={handleBuscarCliente}
+            className="btn-secondary py-3 flex items-center justify-center gap-2"
+          >
+            <Search className="w-5 h-5" />
+            Buscar Cliente
+          </button>
+        </div>
+      </div>
+
+      {/* Cards de Métricas: Agendamentos, Receita e Lucro */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        {/* Card de Agendamentos Hoje */}
         <div className="card p-6">
           <h3 className="text-sm font-medium text-gray-500">Agendamentos Hoje</h3>
-          <p className="text-2xl font-bold text-blue-600">
+          <p className="text-3xl font-bold text-blue-600 mt-2">
             {isLoading ? '...' : agendamentosHoje?.agendamentos?.length || 0}
           </p>
         </div>
 
+        {/* Card de Receita */}
         <div className="card p-6">
-          <h3 className="text-sm font-medium text-gray-500">Status</h3>
-          <p className="text-2xl font-bold text-green-600">
-            {user.estabelecimento_id ? 'Ativo' : 'Inativo'}
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-green-100 rounded-lg">
+              <DollarSign className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Receita (30 dias)</p>
+              <p className="text-2xl font-bold text-gray-900">
+                R$ {estatisticas?.resumo_financeiro?.total_receita?.toFixed(2) || '0.00'}
+              </p>
+            </div>
+          </div>
         </div>
 
+        {/* Card de Lucro */}
         <div className="card p-6">
-          <h3 className="text-sm font-medium text-gray-500">Seu Papel</h3>
-          <p className="text-2xl font-bold text-purple-600 capitalize">
-            {user.role || 'N/A'}
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <TrendingUp className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Lucro (30 dias)</p>
+              <p className="text-2xl font-bold text-gray-900">
+                R$ {estatisticas?.resumo_financeiro?.lucro_bruto?.toFixed(2) || '0.00'}
+              </p>
+            </div>
+          </div>
         </div>
+
       </div>
 
       {/* Agendamentos de hoje */}
@@ -82,7 +147,8 @@ const DashboardPage: React.FC = () => {
               {agendamentosHoje?.agendamentos?.map((agendamento: any) => (
                 <div
                   key={agendamento.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  onClick={() => navigate('/agendamentos')}
                 >
                   <div>
                     <p className="font-medium">
@@ -99,14 +165,14 @@ const DashboardPage: React.FC = () => {
                   <div>
                     <span
                       className={`px-2 py-1 text-xs rounded-full ${
-                        agendamento.status === 'agendado'
+                        agendamento.status === 'AGENDADO'
                           ? 'bg-blue-100 text-blue-800'
-                          : agendamento.status === 'confirmado'
+                          : agendamento.status === 'CONFIRMADO'
                           ? 'bg-green-100 text-green-800'
-                          : agendamento.status === 'em_andamento'
+                          : agendamento.status === 'EM_ANDAMENTO'
                           ? 'bg-yellow-100 text-yellow-800'
-                          : agendamento.status === 'concluido'
-                          ? 'bg-green-100 text-green-800'
+                          : agendamento.status === 'CONCLUIDO'
+                          ? 'bg-emerald-100 text-emerald-800'
                           : 'bg-red-100 text-red-800'
                       }`}
                     >
@@ -120,42 +186,47 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Ações rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Materiais com Estoque Baixo */}
+      {materiaisBaixoEstoque.length > 0 && (
         <div className="card p-6">
-          <h3 className="text-lg font-semibold mb-4">Ações Rápidas</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                Materiais com Estoque Baixo
+              </h3>
+            </div>
+            <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
+              {materiaisBaixoEstoque.length} {materiaisBaixoEstoque.length === 1 ? 'item' : 'itens'}
+            </span>
+          </div>
           <div className="space-y-3">
-            <button
-              onClick={handleNovoAgendamento}
-              className="btn-primary w-full py-2 flex items-center justify-center gap-2"
-            >
-              <CalendarPlus className="w-5 h-5" />
-              Novo Agendamento
-            </button>
-            <button
-              onClick={handleBuscarCliente}
-              className="btn-secondary w-full py-2 flex items-center justify-center gap-2"
-            >
-              <Search className="w-5 h-5" />
-              Buscar Cliente
-            </button>
+            {materiaisBaixoEstoque.map((material: any) => (
+              <div
+                key={material.id}
+                className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors cursor-pointer"
+                onClick={() => navigate('/materiais')}
+              >
+                <div className="flex items-center gap-3">
+                  <Package className="w-5 h-5 text-yellow-600" />
+                  <div>
+                    <p className="font-medium text-gray-900">{material.nome}</p>
+                    <p className="text-sm text-gray-600">
+                      Mínimo: {material.quantidade_minima} {material.unidade_medida.toLowerCase()}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-yellow-700">
+                    {material.quantidade_estoque} {material.unidade_medida.toLowerCase()}
+                  </p>
+                  <p className="text-xs text-yellow-600">Estoque atual</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold mb-4">Estatísticas</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Estabelecimento:</span>
-              <span className="font-medium">#{user.estabelecimento_id}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Última atualização:</span>
-              <span className="font-medium">Agora</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

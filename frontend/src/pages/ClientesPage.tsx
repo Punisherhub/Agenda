@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { clientesApi } from '../services/api'
 import { Cliente, ClienteCreate } from '../types'
@@ -7,6 +8,7 @@ import ClienteHistoricoModal from '../components/ClienteHistoricoModal'
 import { formatCPF, formatTelefone } from '../utils/formatters'
 
 const ClientesPage: React.FC = () => {
+  const navigate = useNavigate()
   const [busca, setBusca] = useState('')
   const [filtros, setFiltros] = useState({
     nome: '',
@@ -52,6 +54,22 @@ const ClientesPage: React.FC = () => {
       const cliente = await clientesApi.get(id)
       setClienteSelecionado(cliente)
       setHistoricoModalOpen(true)
+    } catch (error) {
+      console.error('Erro ao buscar cliente:', error)
+      alert('Erro ao carregar dados do cliente')
+    }
+  }
+
+  const handleAgendarServico = async (id: number) => {
+    try {
+      const cliente = await clientesApi.get(id)
+      // Navega para a página de agendamentos com o cliente pré-selecionado
+      navigate('/agendamentos', {
+        state: {
+          openModal: true,
+          clienteId: cliente.id
+        }
+      })
     } catch (error) {
       console.error('Erro ao buscar cliente:', error)
       alert('Erro ao carregar dados do cliente')
@@ -127,6 +145,12 @@ const ClientesPage: React.FC = () => {
                       </p>
                     </div>
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => handleAgendarServico(cliente.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 text-xs rounded"
+                      >
+                        Agendar
+                      </button>
                       <button
                         onClick={() => handleEditarCliente(cliente.id)}
                         className="btn-primary px-2 py-1 text-xs"
@@ -287,6 +311,12 @@ const ClientesPage: React.FC = () => {
                       {new Date(cliente.created_at).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                      <button
+                        onClick={() => handleAgendarServico(cliente.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 text-xs rounded"
+                      >
+                        Agendar
+                      </button>
                       <button
                         onClick={() => handleEditarCliente(cliente.id)}
                         className="btn-primary px-2 py-1 text-xs"

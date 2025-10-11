@@ -13,6 +13,7 @@ interface AgendamentoModalProps {
   clientes: Cliente[]
   selectedDate?: Date
   selectedEndDate?: Date
+  preSelectedClienteId?: number | null
   loading?: boolean
 }
 
@@ -25,6 +26,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
   clientes,
   selectedDate,
   selectedEndDate,
+  preSelectedClienteId = null,
   loading = false
 }) => {
   const [clienteBusca, setClienteBusca] = useState('')
@@ -109,6 +111,17 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
       setClientesFiltrados([])
     }
   }, [clienteBusca, clientes])
+
+  // Pré-selecionar cliente quando vem da página de clientes
+  useEffect(() => {
+    if (preSelectedClienteId && clientes.length > 0 && isOpen) {
+      const cliente = clientes.find(c => c.id === preSelectedClienteId)
+      if (cliente) {
+        setValue('cliente_id', cliente.id)
+        setClienteBusca(cliente.nome)
+      }
+    }
+  }, [preSelectedClienteId, clientes, isOpen, setValue])
 
   const calcularDataFim = () => {
     if (!watchDataInicio || !watchHoraInicio) {

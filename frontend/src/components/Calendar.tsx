@@ -165,7 +165,6 @@ const Calendar: React.FC<CalendarProps> = ({
       <div className="flex items-center space-x-2">
         <div className="flex bg-gray-100 rounded-lg p-1">
           {[
-            { key: Views.DAY, label: 'Dia' },
             { key: Views.WEEK, label: 'Semana' },
             { key: Views.MONTH, label: 'Mês' }
           ].map(({ key, label }) => (
@@ -186,7 +185,7 @@ const Calendar: React.FC<CalendarProps> = ({
     </div>
   )
 
-  // Customizar evento
+  // Customizar evento para visualização de semana/dia
   const EventComponent = ({ event }: { event: CalendarEvent }) => {
     const agendamento = event.resource
     const servico = servicos.find(s => s.id === agendamento.servico_id)
@@ -216,6 +215,55 @@ const Calendar: React.FC<CalendarProps> = ({
       </div>
     )
   }
+
+  // Componente customizado para visualização de mês (apenas contagem)
+  const MonthEvent = ({ event }: { event: CalendarEvent }) => {
+    return (
+      <div className="text-xs truncate px-1 py-0.5">
+        {format(event.start, 'HH:mm')}
+      </div>
+    )
+  }
+
+  // Componente customizado para célula de data no mês
+  const MonthDateHeader = ({ date, drilldownView, onDrillDown }: any) => {
+    // Contar agendamentos para este dia
+    const dayEvents = events.filter(event => {
+      const eventDate = format(event.start, 'yyyy-MM-dd')
+      const currentDate = format(date, 'yyyy-MM-dd')
+      return eventDate === currentDate
+    })
+
+    const handleClick = (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      handleDrillDown(date)
+    }
+
+    return (
+      <div
+        className="rbc-date-cell cursor-pointer hover:bg-blue-50 transition-colors"
+        onClick={handleClick}
+      >
+        <div className="font-semibold text-gray-700">
+          {format(date, 'd')}
+        </div>
+        {dayEvents.length > 0 && (
+          <div className="mt-1 text-center">
+            <span className="inline-flex items-center justify-center bg-blue-600 text-white text-xs font-semibold rounded-full w-6 h-6">
+              {dayEvents.length}
+            </span>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Handler para drill down (clicar em uma data no mês)
+  const handleDrillDown = useCallback((date: Date) => {
+    setDate(date)
+    setView(Views.WEEK)
+  }, [])
 
   // Mensagens customizadas
   const messages = {
@@ -261,7 +309,7 @@ const Calendar: React.FC<CalendarProps> = ({
           }
           .rbc-date-cell {
             padding: 8px;
-            text-align: right;
+            text-align: center;
           }
           .rbc-date-cell.rbc-off-range {
             color: #9ca3af;
@@ -298,6 +346,37 @@ const Calendar: React.FC<CalendarProps> = ({
             background-color: rgba(59, 130, 246, 0.2);
             border: 1px solid #3b82f6;
           }
+
+          /* Ocultar eventos na visualização de mês - apenas mostrar o contador no dateHeader */
+          .rbc-month-view .rbc-event {
+            display: none !important;
+          }
+          .rbc-month-view .rbc-row-content {
+            pointer-events: none;
+          }
+          .rbc-month-view .rbc-date-cell {
+            min-height: 80px;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            cursor: default !important;
+            pointer-events: auto !important;
+          }
+          .rbc-month-view .rbc-date-cell button {
+            cursor: pointer;
+            pointer-events: auto !important;
+          }
+          .rbc-month-view .rbc-row-segment {
+            display: none;
+          }
+          .rbc-month-view .rbc-day-bg {
+            cursor: default !important;
+          }
+          .rbc-month-view .rbc-day-bg:hover {
+            background-color: inherit;
+          }
         `}</style>
 
         <DnDCalendar
@@ -310,16 +389,21 @@ const Calendar: React.FC<CalendarProps> = ({
           onView={setView}
           date={date}
           onNavigate={setDate}
-          selectable
-          resizable
-          onSelectSlot={onSelectSlot}
+          selectable={view !== Views.MONTH}
+          resizable={view !== Views.MONTH}
+          onSelectSlot={view !== Views.MONTH ? onSelectSlot : undefined}
           onSelectEvent={onSelectEvent as any}
           onEventResize={handleEventResize as any}
           onEventDrop={handleEventDrop as any}
+          onDrillDown={handleDrillDown}
           eventPropGetter={eventStyleGetter as any}
           components={{
             toolbar: CustomToolbar,
-            event: EventComponent as any
+            event: EventComponent as any,
+            month: {
+              event: MonthEvent as any,
+              dateHeader: MonthDateHeader as any
+            }
           }}
           messages={messages}
           culture="pt-BR"

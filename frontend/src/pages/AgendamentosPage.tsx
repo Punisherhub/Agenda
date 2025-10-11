@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agendamentosApi, servicosApi, clientesApi } from '../services/api'
 import { format, startOfMonth, endOfMonth, addDays, subDays } from 'date-fns'
@@ -9,6 +10,7 @@ import { Calendar as CalendarIcon, List } from 'lucide-react'
 import { Agendamento, AgendamentoCreate } from '../types'
 
 const AgendamentosPage: React.FC = () => {
+  const location = useLocation()
   const [view, setView] = useState<'calendar' | 'list'>('calendar')
   const [currentDate] = useState(new Date())
 
@@ -17,6 +19,7 @@ const AgendamentosPage: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
+  const [preSelectedClienteId, setPreSelectedClienteId] = useState<number | null>(null)
 
   const [filtros, setFiltros] = useState({
     data_inicio: '',
@@ -84,6 +87,19 @@ const AgendamentosPage: React.FC = () => {
     queryKey: ['clientes', 'agendamentos-page'],
     queryFn: () => clientesApi.list({ limit: 100 })
   })
+
+  // Detectar se veio da página de clientes com cliente pré-selecionado
+  useEffect(() => {
+    const state = location.state as { openModal?: boolean; clienteId?: number } | null
+    if (state?.openModal && state?.clienteId) {
+      setPreSelectedClienteId(state.clienteId)
+      setSelectedSlot(null)
+      setSelectedAgendamento(null)
+      setShowAgendamentoModal(true)
+      // Limpar o state para não reabrir o modal ao voltar
+      window.history.replaceState({}, document.title)
+    }
+  }, [location])
 
   // Mutations
   const createMutation = useMutation({
@@ -622,6 +638,7 @@ const AgendamentosPage: React.FC = () => {
           setShowAgendamentoModal(false)
           setSelectedSlot(null)
           setSelectedAgendamento(null)
+          setPreSelectedClienteId(null)
         }}
         onSave={handleSaveAgendamento}
         agendamento={selectedAgendamento}
@@ -629,6 +646,7 @@ const AgendamentosPage: React.FC = () => {
         clientes={clientes?.clientes || []}
         selectedDate={selectedSlot?.start}
         selectedEndDate={selectedSlot?.end}
+        preSelectedClienteId={preSelectedClienteId}
         loading={createMutation.isPending}
       />
 
