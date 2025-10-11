@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     debug: bool = True
 
+    # Timezone do Brasil (Horário de Brasília)
+    timezone: str = "America/Sao_Paulo"
+
     class Config:
         env_file = ".env"
 

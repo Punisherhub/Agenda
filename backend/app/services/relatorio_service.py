@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, case
+from sqlalchemy import func, and_, case, text
 from datetime import date, datetime, timedelta
 from typing import List, Dict
 
@@ -11,6 +11,7 @@ from app.schemas.relatorio import (
     MaterialEstoque, ResumoFinanceiro, ServicoLucro,
     MaterialConsumo, ReceitaDiaria, DashboardRelatorios
 )
+from app.utils.timezone import get_brazil_date_range
 
 
 class RelatorioService:
@@ -45,19 +46,22 @@ class RelatorioService:
     ) -> ResumoFinanceiro:
         """Calcula resumo financeiro do período."""
 
-        # Agendamentos concluídos no período
+        # Obter range de datas no timezone do Brasil
+        date_range = get_brazil_date_range(data_inicio, data_fim)
+
+        # Agendamentos concluídos no período (usando timezone do Brasil)
         agendamentos_concluidos = db.query(Agendamento).filter(
             Agendamento.estabelecimento_id == estabelecimento_id,
             Agendamento.status == StatusAgendamento.CONCLUIDO,
-            func.date(Agendamento.data_inicio) >= data_inicio,
-            func.date(Agendamento.data_inicio) <= data_fim
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) >= data_inicio,
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) <= data_fim
         ).all()
 
         # Total de agendamentos (todos os status)
         total_agendamentos = db.query(func.count(Agendamento.id)).filter(
             Agendamento.estabelecimento_id == estabelecimento_id,
-            func.date(Agendamento.data_inicio) >= data_inicio,
-            func.date(Agendamento.data_inicio) <= data_fim
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) >= data_inicio,
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) <= data_fim
         ).scalar() or 0
 
         # Calcular receita e custos
@@ -92,7 +96,7 @@ class RelatorioService:
     ) -> List[ServicoLucro]:
         """Retorna análise de lucro por serviço."""
 
-        # Query para agrupar por serviço
+        # Query para agrupar por serviço (usando timezone do Brasil)
         query = db.query(
             Servico.id,
             Servico.nome,
@@ -106,8 +110,8 @@ class RelatorioService:
         ).filter(
             Agendamento.estabelecimento_id == estabelecimento_id,
             Agendamento.status == StatusAgendamento.CONCLUIDO,
-            func.date(Agendamento.data_inicio) >= data_inicio,
-            func.date(Agendamento.data_inicio) <= data_fim
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) >= data_inicio,
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) <= data_fim
         ).group_by(
             Servico.id, Servico.nome
         ).all()
@@ -153,8 +157,8 @@ class RelatorioService:
             Agendamento, Agendamento.id == ConsumoMaterial.agendamento_id
         ).filter(
             Material.estabelecimento_id == estabelecimento_id,
-            func.date(Agendamento.data_inicio) >= data_inicio,
-            func.date(Agendamento.data_inicio) <= data_fim
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) >= data_inicio,
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) <= data_fim
         ).group_by(
             Material.id, Material.nome, Material.unidade_medida
         ).all()
@@ -180,9 +184,9 @@ class RelatorioService:
     ) -> List[ReceitaDiaria]:
         """Retorna receita diária do período."""
 
-        # Query agrupada por dia
+        # Query agrupada por dia (usando timezone do Brasil)
         query = db.query(
-            func.date(Agendamento.data_inicio).label('data'),
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)).label('data'),
             func.sum(
                 case(
                     (Agendamento.status == StatusAgendamento.CONCLUIDO, Agendamento.valor_final),
@@ -195,12 +199,12 @@ class RelatorioService:
             ConsumoMaterial, ConsumoMaterial.agendamento_id == Agendamento.id
         ).filter(
             Agendamento.estabelecimento_id == estabelecimento_id,
-            func.date(Agendamento.data_inicio) >= data_inicio,
-            func.date(Agendamento.data_inicio) <= data_fim
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) >= data_inicio,
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) <= data_fim
         ).group_by(
-            func.date(Agendamento.data_inicio)
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio))
         ).order_by(
-            func.date(Agendamento.data_inicio)
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio))
         ).all()
 
         resultado = []
