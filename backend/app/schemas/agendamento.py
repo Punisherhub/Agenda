@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List, Any
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import Optional, List, Any, Union
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
@@ -27,9 +27,15 @@ class AgendamentoCreate(BaseModel):
     data_inicio: datetime
     data_fim: Optional[datetime] = None
     cliente_id: int
-    servico_id: int
+    servico_id: Union[int, None] = None  # Aceita int ou None explicitamente
     observacoes: Optional[str] = None
-    valor_desconto: Optional[Decimal] = Field(0, ge=0)
+    valor_desconto: Optional[Decimal] = Field(default=0, ge=0)
+
+    # Campos para serviço personalizado
+    servico_personalizado: bool = False
+    servico_personalizado_nome: Optional[str] = None
+    servico_personalizado_descricao: Optional[str] = None
+    valor_servico_personalizado: Optional[Decimal] = None  # Preço do serviço personalizado
 
 
 class AgendamentoUpdate(BaseModel):
@@ -42,6 +48,8 @@ class AgendamentoUpdate(BaseModel):
     forma_pagamento: Optional[FormaPagamento] = None
     avaliacao_nota: Optional[int] = Field(None, ge=1, le=5)
     avaliacao_comentario: Optional[str] = None
+    cliente_id: Optional[int] = None
+    servico_id: Optional[int] = None
 
 
 class AgendamentoResponse(BaseModel):
@@ -59,13 +67,18 @@ class AgendamentoResponse(BaseModel):
     avaliacao_nota: Optional[int] = None
     avaliacao_comentario: Optional[str] = None
     cliente_id: int
-    servico_id: int
+    servico_id: Optional[int] = None  # Nullable para serviços personalizados
     vendedor_id: int
     estabelecimento_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
     canceled_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+
+    # Campos de serviço personalizado
+    servico_personalizado: Optional[bool] = False
+    servico_personalizado_nome: Optional[str] = None
+    servico_personalizado_descricao: Optional[str] = None
 
     class Config:
         from_attributes = True

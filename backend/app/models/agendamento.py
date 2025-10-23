@@ -38,6 +38,11 @@ class Agendamento(Base):
     observacoes = Column(Text, nullable=True)
     observacoes_internas = Column(Text, nullable=True)  # Observações só para funcionários
 
+    # Serviço personalizado
+    servico_personalizado = Column(Boolean, default=False)  # True se é serviço personalizado
+    servico_personalizado_nome = Column(String(255), nullable=True)  # Nome do serviço personalizado
+    servico_personalizado_descricao = Column(Text, nullable=True)  # Descrição opcional
+
     # Valores
     valor_servico = Column(Numeric(10, 2), nullable=False)
     valor_desconto = Column(Numeric(10, 2), default=0)
@@ -50,7 +55,7 @@ class Agendamento(Base):
 
     # Foreign Keys
     cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=False)
-    servico_id = Column(Integer, ForeignKey("servicos.id"), nullable=False)
+    servico_id = Column(Integer, ForeignKey("servicos.id"), nullable=True)  # Nullable para serviços personalizados
     vendedor_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Quem fez o agendamento
     estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id"), nullable=False)
 

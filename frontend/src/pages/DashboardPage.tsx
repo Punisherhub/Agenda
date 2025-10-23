@@ -11,6 +11,9 @@ const DashboardPage: React.FC = () => {
   const amanha = new Date(hoje)
   amanha.setDate(amanha.getDate() + 1)
 
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const isAdminOrManager = user.role === 'admin' || user.role === 'manager'
+
   const { data: agendamentosHoje, isLoading } = useQuery({
     queryKey: ['agendamentos', 'hoje'],
     queryFn: () => agendamentosApi.list({
@@ -20,22 +23,22 @@ const DashboardPage: React.FC = () => {
     })
   })
 
-  // Buscar estatísticas do mês
+  // Buscar estatísticas do mês (apenas para admin/manager)
   const { data: estatisticas } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => relatoriosApi.getDashboard({
       data_inicio: format(subDays(hoje, 30), 'yyyy-MM-dd'),
       data_fim: format(hoje, 'yyyy-MM-dd')
-    })
+    }),
+    enabled: isAdminOrManager // Só busca se for admin ou manager
   })
 
-  // Buscar materiais com estoque baixo
+  // Buscar materiais com estoque baixo (apenas para admin/manager)
   const { data: materiais } = useQuery({
     queryKey: ['materiais-dashboard'],
-    queryFn: () => materiaisApi.list({ ativo: true })
+    queryFn: () => materiaisApi.list({ ativo: true }),
+    enabled: isAdminOrManager // Só busca se for admin ou manager
   })
-
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   const handleNovoAgendamento = () => {
     navigate('/agendamentos')
@@ -49,11 +52,6 @@ const DashboardPage: React.FC = () => {
   const materiaisBaixoEstoque = materiais?.materiais?.filter((m: any) =>
     m.quantidade_minima && m.quantidade_estoque <= m.quantidade_minima
   ) || []
-
-  // Calcular valor total do estoque
-  const valorTotalEstoque = estatisticas?.estoque_materiais?.reduce(
-    (total: number, item: any) => total + item.valor_total_estoque, 0
-  ) || 0
 
   return (
     <div className="space-y-6">
@@ -89,47 +87,58 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Cards de Métricas: Agendamentos, Receita e Lucro */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {isAdminOrManager ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card de Agendamentos Hoje */}
+          <div className="card p-6">
+            <h3 className="text-sm font-medium text-gray-500">Agendamentos Hoje</h3>
+            <p className="text-3xl font-bold text-blue-600 mt-2">
+              {isLoading ? '...' : agendamentosHoje?.agendamentos?.length || 0}
+            </p>
+          </div>
 
-        {/* Card de Agendamentos Hoje */}
+          {/* Card de Receita */}
+          <div className="card p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-green-100 rounded-lg">
+                <DollarSign className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Receita (30 dias)</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  R$ {estatisticas?.resumo_financeiro?.total_receita?.toFixed(2) || '0.00'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card de Lucro */}
+          <div className="card p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Lucro (30 dias)</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  R$ {estatisticas?.resumo_financeiro?.lucro_bruto?.toFixed(2) || '0.00'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Dashboard simplificado para vendedores - só mostra agendamentos
         <div className="card p-6">
-          <h3 className="text-sm font-medium text-gray-500">Agendamentos Hoje</h3>
-          <p className="text-3xl font-bold text-blue-600 mt-2">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Agendamentos Hoje</h3>
+          <p className="text-4xl font-bold text-blue-600">
             {isLoading ? '...' : agendamentosHoje?.agendamentos?.length || 0}
           </p>
+          <p className="text-sm text-gray-500 mt-1">
+            {agendamentosHoje?.agendamentos?.length === 1 ? 'agendamento' : 'agendamentos'}
+          </p>
         </div>
-
-        {/* Card de Receita */}
-        <div className="card p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <DollarSign className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Receita (30 dias)</p>
-              <p className="text-2xl font-bold text-gray-900">
-                R$ {estatisticas?.resumo_financeiro?.total_receita?.toFixed(2) || '0.00'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Card de Lucro */}
-        <div className="card p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Lucro (30 dias)</p>
-              <p className="text-2xl font-bold text-gray-900">
-                R$ {estatisticas?.resumo_financeiro?.lucro_bruto?.toFixed(2) || '0.00'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-      </div>
+      )}
 
       {/* Agendamentos de hoje */}
       <div className="card">
@@ -186,8 +195,8 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Materiais com Estoque Baixo */}
-      {materiaisBaixoEstoque.length > 0 && (
+      {/* Materiais com Estoque Baixo - Apenas para Admin/Manager */}
+      {isAdminOrManager && materiaisBaixoEstoque.length > 0 && (
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">

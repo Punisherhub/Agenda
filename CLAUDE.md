@@ -47,11 +47,11 @@ Empresa → Estabelecimento → Serviço → Usuario (Vendedor) → Cliente → 
 ## 🗄️ Banco de Dados
 
 ### Conexão
-O projeto usa PostgreSQL hospedado no Render.com. Credenciais estão no arquivo `.env` do backend.
+O projeto usa PostgreSQL hospedado no Render.com. **Credenciais estão hardcoded em `backend/app/database.py`** (não usa arquivo `.env`).
 
-**Formato da connection string**:
+**Connection string format**:
 ```
-DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require
+postgresql://user:password@host:port/database?sslmode=require
 ```
 
 ### Estrutura Atual
@@ -59,16 +59,19 @@ DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require
 - ✅ **estabelecimentos**: Filiais/locais de atendimento
 - ✅ **servicos**: Serviços oferecidos (preço, duração, categoria)
 - ✅ **users**: Funcionários com roles (ADMIN, MANAGER, VENDEDOR, ATENDENTE)
-- ✅ **clientes**: Dados dos clientes (contato, preferências, VIP)
+- ✅ **clientes**: Dados dos clientes (contato, preferências)
 - ✅ **agendamentos**: Appointments com status e valores
+- ✅ **materiais**: Estoque de materiais (quantidade, custo unitário)
+- ✅ **consumos_materiais**: Registro de uso de materiais por agendamento
 
 ### Dados de Teste Populados
 - 3 Empresas (Barbearia, Oficina, Pet Shop)
 - 4 Estabelecimentos
 - 10 Serviços diversos
 - 6 Usuários com diferentes roles
-- 6 Clientes (2 VIPs)
+- 6 Clientes
 - 6 Agendamentos com diferentes status
+- Materiais e consumos para relatórios financeiros
 
 ## 🔐 Autenticação
 
@@ -88,10 +91,27 @@ class UserRole(enum.Enum):
 ```
 
 **REGRAS DE NEGÓCIO:**
-- ✅ TODOS os funcionários podem fazer agendamentos
-- ✅ Cada agendamento pertence a um estabelecimento
-- ✅ Usuários veem/agendam serviços do seu estabelecimento
-- ✅ Roles são apenas para organização (não restringem funcionalidades)
+
+#### Acesso Total (ADMIN e MANAGER)
+- ✅ Agendamentos (criar, editar, deletar, visualizar)
+- ✅ Clientes (criar, editar, deletar, visualizar)
+- ✅ Serviços (criar, editar, deletar, visualizar)
+- ✅ Materiais (criar, editar, deletar, visualizar)
+- ✅ Relatórios Financeiros (visualizar)
+- ✅ Dashboard completo
+
+#### Acesso Limitado (VENDEDOR e ATENDENTE)
+- ✅ Agendamentos (criar, editar, deletar, visualizar)
+- ✅ Clientes (criar, editar, deletar, visualizar)
+- ❌ Serviços (sem acesso)
+- ❌ Materiais (sem acesso)
+- ❌ Relatórios Financeiros (sem acesso)
+
+**IMPLEMENTAÇÃO:**
+- Backend: Verificação via `check_admin_or_manager()` em `app/utils/permissions.py`
+- Frontend: Menus ocultos + rotas protegidas via `RoleProtectedRoute`
+- Cada agendamento pertence a um estabelecimento
+- Usuários veem/agendam apenas do seu estabelecimento
 
 ### Usuários de Teste
 ```
@@ -106,86 +126,34 @@ Role: VENDEDOR
 
 ## 📊 Estado Atual
 
-### ✅ Implementado
-- [x] Estrutura completa do banco
-- [x] Modelos SQLAlchemy
-- [x] Schemas Pydantic
-- [x] Autenticação JWT funcional
-- [x] FastAPI com 48 rotas definidas
-- [x] Dados de teste populados
-- [x] **CRUD de Agendamentos** (COMPLETO)
-- [x] **CRUD de Clientes** (COMPLETO)
-- [x] **CRUD de Serviços** (COMPLETO)
-- [x] **Autorização por estabelecimento** (IMPLEMENTADO)
-- [x] **Filtros automáticos por usuário** (IMPLEMENTADO)
-- [x] **Services para lógica de negócio** (IMPLEMENTADO)
-- [x] **Calendário com Drag & Drop** (IMPLEMENTADO)
-- [x] **Resize dinâmico de agendamentos** (IMPLEMENTADO)
-- [x] **Interface tipo Google Calendar** (IMPLEMENTADO)
+### ✅ Core Features Implementadas
+- Autenticação JWT completa com role-based access control
+- CRUD completo: Agendamentos, Clientes, Serviços, Materiais
+- Calendário drag & drop (React Big Calendar) com resize dinâmico
+- Sistema de estoque com rastreamento de consumo por agendamento
+- Relatórios financeiros com gráficos interativos (Recharts)
+- Multi-estabelecimento com isolamento automático de dados
+- Dados de teste populados no banco
 
-### ⚠️ Pendente (Opcional)
-- [ ] CRUD de Estabelecimentos (Admin)
-- [ ] CRUD de Empresas (Admin)
-- [ ] Dashboard/Relatórios
-- [ ] Notificações
-- [ ] Configurações avançadas
-
-## 🎯 Próximos Passos
-
-### 1. CRÍTICO - Agendamentos (Core)
-```python
-# Endpoints essenciais:
-GET /agendamentos/                    # Listar com filtros
-POST /agendamentos/                   # Criar novo
-GET /agendamentos/calendario          # View calendário
-PUT /agendamentos/{id}/status         # Atualizar status
-DELETE /agendamentos/{id}             # Cancelar
-```
-
-### 2. IMPORTANTE - Gestão Básica
-- CRUD completo de clientes
-- Listar serviços do estabelecimento
-- Busca rápida de clientes
-
-### 3. SEGURANÇA - Autorização
-- Filtrar por estabelecimento do usuário
-- Verificar permissões por role
-- Isolamento de dados
+### ⚠️ Opcional/Futuro
+- CRUD de Estabelecimentos e Empresas (Admin)
+- Notificações (email/SMS)
+- Exportação de relatórios (PDF/Excel)
 
 ## 📅 Funcionalidade de Calendário
 
-### Interface Google Calendar-like
-- **React Big Calendar** com drag-and-drop habilitado
-- **Visualização**: Dia, Semana, Mês
-- **Eventos coloridos** por status do agendamento
-- **Timezone**: PT-BR com date-fns localização
+### Características
+- **React Big Calendar** com drag-and-drop e resize habilitados
+- Visualizações: Dia, Semana, Mês
+- Eventos coloridos por status, timezone PT-BR
+- Drag & drop para alterar horários, resize para ajustar duração
+- React Query para cache e atualização em tempo real
+- Duração flexível: serviços não têm tempo pré-determinado (15-480 min)
 
-### Drag & Drop Dinâmico
-- ✅ **Arrastar eventos**: Move horário mantendo duração
-- ✅ **Redimensionar eventos**: Estende/reduz duração dinamicamente
-- ✅ **Seleção de slots**: Clique em horário vazio para criar agendamento
-- ✅ **Atualização em tempo real**: React Query invalida cache automaticamente
-
-### Duração Flexível de Serviços
-- **Sem duração fixa**: Serviços não têm tempo pré-determinado
-- **Duração personalizada**: Definida no modal de agendamento (15-480 min)
-- **Resize visual**: Arrastar para baixo no evento estende a duração
-- **Persistência**: Backend salva `data_inicio` e `data_fim` separadamente
-
-### Tecnologias Utilizadas
-```tsx
-// Principais dependências do calendário
-import { Calendar as BigCalendar } from 'react-big-calendar'
-import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
-import { DndProvider } from 'react-dnd'
-import { HTML5Backend } from 'react-dnd-html5-backend'
-```
-
-### Handlers de Evento
-- **onEventResize**: Captura redimensionamento e atualiza data_fim
-- **onEventDrop**: Captura movimentação e ajusta horários
-- **onSelectSlot**: Cria novo agendamento no horário selecionado
-- **onSelectEvent**: Abre modal de detalhes do agendamento
+### Implementação Crítica
+- **Backend**: `AgendamentoService` só recalcula `data_fim` se não for explicitamente fornecido (evita sobrescrever resize)
+- **Frontend**: Handlers em `AgendamentosPage.tsx` enviam `data_fim` explícito em resize/drag
+- Componente principal: `Calendar.tsx` com `DnDCalendar` do `react-big-calendar`
 
 ## 🚀 Como Executar
 
@@ -212,6 +180,7 @@ uvicorn main:app --reload --port 8000
 ```
 
 **API Docs (Swagger)**: http://localhost:8000/docs
+**ReDoc (Alternative Docs)**: http://localhost:8000/redoc
 
 ### Frontend (Interface - porta 3000)
 ```bash
@@ -313,21 +282,35 @@ backend/
 │   │   ├── estabelecimentos.py # Establishment routes
 │   │   ├── servicos.py    # Services routes
 │   │   ├── clientes.py    # Client routes
-│   │   └── agendamentos.py # Appointment routes
+│   │   ├── agendamentos.py # Appointment routes
+│   │   ├── materiais.py   # Materials/inventory routes
+│   │   └── relatorios.py  # Financial reports routes
 │   ├── models/            # SQLAlchemy models
 │   │   ├── user.py        # User/Employee model
 │   │   ├── empresa.py     # Company model
 │   │   ├── estabelecimento.py # Establishment model
 │   │   ├── servico.py     # Service model
 │   │   ├── cliente.py     # Client model
-│   │   └── agendamento.py # Appointment model
-│   ├── schemas/           # Pydantic schemas
+│   │   ├── agendamento.py # Appointment model
+│   │   ├── material.py    # Material/inventory model
+│   │   └── consumo_material.py # Material consumption model
+│   ├── schemas/           # Pydantic schemas (request/response)
 │   ├── services/          # Business logic layer
+│   │   ├── auth_service.py
+│   │   ├── agendamento_service.py
+│   │   ├── cliente_service.py
+│   │   ├── servico_service.py
+│   │   ├── material_service.py
+│   │   └── relatorio_service.py
 │   ├── utils/             # Helper utilities
+│   │   ├── auth.py        # JWT utilities
+│   │   ├── security.py    # Password hashing
+│   │   ├── permissions.py # Role-based access control
+│   │   └── timezone.py    # Brazil timezone (UTC-3)
 │   ├── config.py          # App configuration
-│   └── database.py        # Database connection
+│   └── database.py        # Database connection (Render.com)
 ├── alembic/               # Database migrations
-├── tests/                 # Test suites
+├── tests/                 # Test suites (pytest)
 │   ├── unit/              # Unit tests
 │   └── integration/       # Integration tests
 ├── main.py                # FastAPI app entry point
@@ -339,23 +322,33 @@ backend/
 frontend/
 ├── src/
 │   ├── components/        # Reusable UI components
-│   │   ├── Layout.tsx     # Main app layout
-│   │   ├── ProtectedRoute.tsx # Route protection
+│   │   ├── Layout.tsx     # Main app layout with navigation
+│   │   ├── ProtectedRoute.tsx # Route protection (authentication)
+│   │   ├── RoleProtectedRoute.tsx # Role-based route protection
 │   │   ├── Calendar.tsx   # Drag & Drop Calendar component
 │   │   ├── AgendamentoModal.tsx # Create/Edit appointment modal
-│   │   └── AgendamentoDetailModal.tsx # Appointment details modal
+│   │   ├── AgendamentoDetailModal.tsx # Appointment details + consumos
+│   │   ├── ClienteModal.tsx # Client form modal
+│   │   ├── ClienteHistoricoModal.tsx # Client history view
+│   │   ├── ServicoModal.tsx # Service form modal
+│   │   ├── MaterialModal.tsx # Material form modal
+│   │   └── ConsumoMaterialModal.tsx # Material consumption form
 │   ├── pages/             # Page components
 │   │   ├── LoginPage.tsx  # Authentication page
 │   │   ├── DashboardPage.tsx # Main dashboard
-│   │   ├── AgendamentosPage.tsx # Appointments page with calendar
-│   │   └── ClientesPage.tsx # Clients page
+│   │   ├── AgendamentosPage.tsx # Appointments calendar (drag & drop)
+│   │   ├── ClientesPage.tsx # Clients CRUD page
+│   │   ├── ServicosPage.tsx # Services CRUD page
+│   │   ├── MateriaisPage.tsx # Materials/inventory CRUD page
+│   │   └── RelatoriosPage.tsx # Financial reports dashboard
 │   ├── services/          # API service layer
-│   │   └── api.ts         # HTTP client configuration
+│   │   └── api.ts         # Axios client + all API calls
 │   ├── types/             # TypeScript type definitions
-│   │   └── index.ts       # Shared types
-│   ├── hooks/             # Custom React hooks
+│   │   └── index.ts       # All shared interfaces/types
 │   ├── utils/             # Helper utilities
-│   └── styles/            # CSS/Tailwind styles
+│   │   ├── formatters.ts  # Currency, date formatting
+│   │   └── timezone.ts    # Brazil timezone utilities
+│   └── styles/            # Global CSS/Tailwind
 ├── vite.config.ts         # Vite configuration (proxy to backend)
 ├── package.json           # Dependencies and scripts
 └── tailwind.config.js     # Tailwind CSS configuration
@@ -390,20 +383,23 @@ Service Layer → SQLAlchemy Model → PostgreSQL → Response Chain
 
 ### Variáveis de Ambiente
 
-**Backend** (`backend/.env`):
-```env
-DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require
-SECRET_KEY=sua_chave_secreta_jwt_aqui
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-DEBUG=True
+**Backend** (`backend/app/database.py`):
+```python
+# Conexão direta com Render.com PostgreSQL (sem .env necessário)
+SQLALCHEMY_DATABASE_URL = "postgresql://sasconv_user:d5DezoH9fkvGQvAldNebbIAU0FWcm4Fe@dpg-d2195c6uk2gs7380vemg-a.virginia-postgres.render.com:5432/agenda_db?sslmode=require"
 ```
 
-**Frontend** (`frontend/.env`):
-```env
-VITE_API_URL=http://localhost:8000
+**Configurações** (`backend/app/config.py`):
+```python
+# SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES e outras configs
+# Definidas diretamente no código para simplificar setup
 ```
 
-**Nota**: Use `backend/app/config.py` para configurações padrão e fallbacks.
+**Frontend**:
+- Vite proxy configurado em `vite.config.ts`
+- Não requer `.env`, usa proxy `/api/*` → `http://localhost:8000/*`
+
+**Nota**: O projeto está configurado para funcionar sem arquivos `.env`, facilitando o setup inicial.
 
 ## 📝 Notas de Desenvolvimento
 
@@ -411,8 +407,9 @@ VITE_API_URL=http://localhost:8000
 - **Naming**: Português para domínio de negócio (empresa, estabelecimento, serviço)
 - **Database**: Soft delete com `is_active`, timestamps automáticos
 - **API**: Responses padronizados, filtros via query parameters
-- **Auth**: JWT com refresh token (30min expiry)
+- **Auth**: JWT com 30min expiry (refresh token não implementado)
 - **Relationships**: Bidirecionais no SQLAlchemy
+- **Timezone**: Brasil (UTC-3) em todo sistema via `app/utils/timezone.py` e `frontend/src/utils/timezone.ts`
 
 ### Convenções
 - **Backend**: FastAPI auto-docs (Swagger UI em `/docs`)
@@ -449,69 +446,20 @@ Services encapsulate business logic and should be used when:
 - Establishment-based filtering for users
 - Status transitions validation
 
-## 🔧 Implementação Técnica - Calendário
 
-### Backend - AgendamentoService
-**Arquivo**: `backend/app/services/agendamento_service.py`
+## 📊 Sistema de Relatórios Financeiros
 
-```python
-# Lógica corrigida para não sobrescrever data_fim quando fornecido
-update_dict = agendamento_data.dict(exclude_unset=True)
-if 'data_inicio' in update_dict and update_dict['data_inicio'] and 'data_fim' not in update_dict:
-    # Só recalcula data_fim se não foi fornecido explicitamente
-    servico = db.query(Servico).filter(Servico.id == agendamento.servico_id).first()
-    if servico and servico.duracao_minutos:
-        agendamento.data_fim = agendamento_data.data_inicio + timedelta(minutes=servico.duracao_minutos)
-```
+### Funcionalidades
+- Resumo: receita total, custos, lucro bruto, margem de lucro
+- Gráficos: receita diária, lucro por serviço, valor estoque, distribuição custos
+- Métricas: taxa conversão, custo médio, ticket médio
+- Endpoints: `/relatorios/resumo-financeiro`, `/receita-diaria`, `/lucro-por-servico`, `/consumo-materiais`, `/valor-estoque`
 
-### Frontend - Handlers de Drag & Drop
-**Arquivo**: `frontend/src/pages/AgendamentosPage.tsx`
-
-```tsx
-const handleEventResize = async (data: { event: any; start: Date; end: Date }) => {
-  try {
-    const agendamento = data.event.resource
-    const agendamentoData = {
-      cliente_id: agendamento.cliente_id,
-      servico_id: agendamento.servico_id,
-      data_inicio: data.start.toISOString(),
-      data_fim: data.end.toISOString(), // Crucial: envia data_fim
-      observacoes: agendamento.observacoes,
-      valor_desconto: agendamento.valor_desconto
-    }
-
-    await agendamentosApi.update(agendamento.id, agendamentoData)
-    await queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
-    await queryClient.refetchQueries({ queryKey: ['agendamentos'] })
-  } catch (error) {
-    // Reverte mudanças em caso de erro
-    await queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
-  }
-}
-```
-
-### Componente Calendar
-**Arquivo**: `frontend/src/components/Calendar.tsx`
-
-```tsx
-// Configuração principal do calendário
-<DnDCalendar
-  localizer={localizer}
-  events={events}
-  view={view}
-  onView={setView}
-  selectable
-  resizable // Habilita resize
-  onSelectSlot={onSelectSlot}
-  onSelectEvent={onSelectEvent}
-  onEventResize={handleEventResize} // Handler de resize
-  onEventDrop={handleEventDrop}     // Handler de drag
-  eventPropGetter={eventStyleGetter} // Cores por status
-  culture="pt-BR"
-  min={new Date(2000, 0, 1, 7, 0)}  // 7:00 AM
-  max={new Date(2000, 0, 1, 20, 0)} // 8:00 PM
-/>
-```
+### Integração Estoque
+- **Material**: item físico (nome, unidade, quantidade, custo unitário)
+- **Consumo**: uso de material em agendamento (atualiza estoque automaticamente)
+- Custos calculados a partir dos consumos registrados
+- Interface: `RelatoriosPage.tsx`, `MateriaisPage.tsx`, `AgendamentoDetailModal.tsx`
 
 ## 🐛 Troubleshooting
 
@@ -541,11 +489,13 @@ const handleEventResize = async (data: { event: any; start: Date; end: Date }) =
 
 **Backend não conecta ao banco**:
 ```bash
-# Verificar variável DATABASE_URL no .env
-cd backend && python -c "from app.config import settings; print(settings.database_url)"
+# Testar conexão (Windows)
+cd backend && python -c "from app.database import engine; print('DB OK')"
 
-# Testar conexão
-cd backend && python -c "from app.database import engine; engine.connect()"
+# Se falhar, verificar:
+# 1. Conexão com internet (banco está no Render.com)
+# 2. Credenciais em backend/app/database.py
+# 3. SSL/TLS habilitado (sslmode=require)
 ```
 
 **Frontend não acessa API**:
@@ -570,10 +520,4 @@ cd backend && alembic upgrade head
 ### Issues Conhecidas
 - Warning bcrypt version (funcional, mas mostra warning)
 - Refresh token endpoint não implementado
-- ~~Bug: Resize não atualizava duração~~ ✅ **CORRIGIDO**
-
-## 📚 Referencias
-
-- FastAPI: https://fastapi.tiangolo.com/
-- SQLAlchemy: https://www.sqlalchemy.org/
-- Alembic: https://alembic.sqlalchemy.org/
+- Banco em Render.com pode hibernar após inatividade (latência no primeiro acesso)

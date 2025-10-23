@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, case, text
+from sqlalchemy import func, and_, case, text, literal
+from sqlalchemy.types import Integer
 from datetime import date, datetime, timedelta
 from typing import List, Dict
 
@@ -50,12 +51,21 @@ class RelatorioService:
         date_range = get_brazil_date_range(data_inicio, data_fim)
 
         # Agendamentos concluídos no período (usando timezone do Brasil)
+        # Apenas CONCLUIDO para cálculo de receita
         agendamentos_concluidos = db.query(Agendamento).filter(
             Agendamento.estabelecimento_id == estabelecimento_id,
             Agendamento.status == StatusAgendamento.CONCLUIDO,
             func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) >= data_inicio,
             func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) <= data_fim
         ).all()
+
+        # Agendamentos finalizados (CONCLUIDO + CANCELADO) para Taxa de Conversão
+        total_agendamentos_finalizados = db.query(func.count(Agendamento.id)).filter(
+            Agendamento.estabelecimento_id == estabelecimento_id,
+            Agendamento.status.in_([StatusAgendamento.CONCLUIDO, StatusAgendamento.CANCELADO]),
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) >= data_inicio,
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) <= data_fim
+        ).scalar() or 0
 
         # Total de agendamentos (todos os status)
         total_agendamentos = db.query(func.count(Agendamento.id)).filter(
@@ -64,7 +74,7 @@ class RelatorioService:
             func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) <= data_fim
         ).scalar() or 0
 
-        # Calcular receita e custos
+        # Calcular receita e custos (apenas de agendamentos CONCLUIDO)
         total_receita = float(sum(a.valor_final for a in agendamentos_concluidos))
 
         # Buscar custos de materiais dos agendamentos concluídos
@@ -84,7 +94,7 @@ class RelatorioService:
             total_custos_materiais=total_custos,
             lucro_bruto=total_receita - total_custos,
             total_agendamentos=total_agendamentos,
-            total_agendamentos_concluidos=len(agendamentos_concluidos)
+            total_agendamentos_concluidos=total_agendamentos_finalizados
         )
 
     @staticmethod
@@ -94,10 +104,10 @@ class RelatorioService:
         data_inicio: date,
         data_fim: date
     ) -> List[ServicoLucro]:
-        """Retorna análise de lucro por serviço."""
+        """Retorna análise de lucro por serviço (incluindo personalizados)."""
 
-        # Query para agrupar por serviço (usando timezone do Brasil)
-        query = db.query(
+        # Serviços predefinidos
+        query_predefinidos = db.query(
             Servico.id,
             Servico.nome,
             func.count(Agendamento.id).label('quantidade'),
@@ -110,14 +120,37 @@ class RelatorioService:
         ).filter(
             Agendamento.estabelecimento_id == estabelecimento_id,
             Agendamento.status == StatusAgendamento.CONCLUIDO,
+            Agendamento.servico_personalizado == False,
             func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) >= data_inicio,
             func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) <= data_fim
         ).group_by(
             Servico.id, Servico.nome
         ).all()
 
+        # Serviços personalizados agrupados por nome
+        query_personalizados = db.query(
+            literal(0, Integer).label('id'),  # ID fictício 0 para personalizados
+            Agendamento.servico_personalizado_nome.label('nome'),
+            func.count(Agendamento.id).label('quantidade'),
+            func.sum(Agendamento.valor_final).label('receita'),
+            func.coalesce(func.sum(ConsumoMaterial.valor_total), 0).label('custos')
+        ).outerjoin(
+            ConsumoMaterial, ConsumoMaterial.agendamento_id == Agendamento.id
+        ).filter(
+            Agendamento.estabelecimento_id == estabelecimento_id,
+            Agendamento.status == StatusAgendamento.CONCLUIDO,
+            Agendamento.servico_personalizado == True,
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) >= data_inicio,
+            func.date(func.timezone('America/Sao_Paulo', Agendamento.data_inicio)) <= data_fim
+        ).group_by(
+            Agendamento.servico_personalizado_nome
+        ).all()
+
+        # Combinar resultados
         resultado = []
-        for servico_id, nome, quantidade, receita, custos in query:
+
+        # Adicionar serviços predefinidos
+        for servico_id, nome, quantidade, receita, custos in query_predefinidos:
             receita = float(receita) if receita else 0
             custos = float(custos) if custos else 0
             lucro = receita - custos
@@ -126,6 +159,23 @@ class RelatorioService:
             resultado.append(ServicoLucro(
                 servico_id=servico_id,
                 servico_nome=nome,
+                quantidade_vendida=quantidade,
+                receita_total=receita,
+                custo_materiais_total=custos,
+                lucro_total=lucro,
+                ticket_medio=ticket_medio
+            ))
+
+        # Adicionar serviços personalizados
+        for servico_id, nome, quantidade, receita, custos in query_personalizados:
+            receita = float(receita) if receita else 0
+            custos = float(custos) if custos else 0
+            lucro = receita - custos
+            ticket_medio = receita / quantidade if quantidade > 0 else 0
+
+            resultado.append(ServicoLucro(
+                servico_id=servico_id,
+                servico_nome=f"{nome} (Personalizado)",  # Marcar como personalizado
                 quantidade_vendida=quantidade,
                 receita_total=receita,
                 custo_materiais_total=custos,

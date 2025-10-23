@@ -4,6 +4,7 @@ from typing import Optional, List
 
 from app.database import get_db
 from app.utils.auth import get_current_active_user
+from app.utils.permissions import check_admin_or_manager
 from app.models.user import User
 from app.schemas.material import (
     MaterialCreate, MaterialUpdate, MaterialResponse, MaterialList,
@@ -32,8 +33,9 @@ async def listar_materiais(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Listar materiais do estabelecimento"""
+    """Listar materiais do estabelecimento (todos os usuários podem visualizar)"""
     check_user_has_estabelecimento(current_user)
+    # Removido check_admin_or_manager - vendedores precisam listar materiais para registrar consumo
 
     materiais, total = MaterialService.get_materiais_by_estabelecimento(
         db=db,
@@ -53,8 +55,9 @@ async def criar_material(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Criar novo material"""
+    """Criar novo material - Apenas ADMIN e MANAGER"""
     check_user_has_estabelecimento(current_user)
+    check_admin_or_manager(current_user)
 
     material = MaterialService.create_material(
         db=db,
@@ -70,8 +73,9 @@ async def obter_material(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Obter material por ID"""
+    """Obter material por ID (todos os usuários podem visualizar)"""
     check_user_has_estabelecimento(current_user)
+    # Removido check_admin_or_manager - vendedores precisam ver detalhes dos materiais
 
     material = MaterialService.get_material(
         db=db,
@@ -88,8 +92,9 @@ async def atualizar_material(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Atualizar material"""
+    """Atualizar material - Apenas ADMIN e MANAGER"""
     check_user_has_estabelecimento(current_user)
+    check_admin_or_manager(current_user)
 
     material = MaterialService.update_material(
         db=db,
@@ -106,8 +111,9 @@ async def desativar_material(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Desativar material"""
+    """Desativar material - Apenas ADMIN e MANAGER"""
     check_user_has_estabelecimento(current_user)
+    check_admin_or_manager(current_user)
 
     material = MaterialService.delete_material(
         db=db,

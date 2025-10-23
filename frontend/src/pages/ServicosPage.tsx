@@ -17,7 +17,7 @@ const ServicosPage: React.FC = () => {
 
   const queryClient = useQueryClient()
 
-  const { data: servicos, isLoading, refetch } = useQuery({
+  const { data: servicos, isLoading } = useQuery({
     queryKey: ['servicos', filtros],
     queryFn: () => servicosApi.list(filtros)
   })

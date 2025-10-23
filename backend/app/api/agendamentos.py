@@ -76,6 +76,11 @@ async def listar_agendamentos(
             "updated_at": ag.updated_at,
             "canceled_at": ag.canceled_at,
             "completed_at": ag.completed_at,
+            # Campos de serviço personalizado
+            "servico_personalizado": ag.servico_personalizado or False,
+            "servico_personalizado_nome": ag.servico_personalizado_nome,
+            "servico_personalizado_descricao": ag.servico_personalizado_descricao,
+            # Dados relacionados
             "cliente": {
                 "id": ag.cliente.id,
                 "nome": ag.cliente.nome,

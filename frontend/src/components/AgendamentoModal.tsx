@@ -33,6 +33,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
   const [clientesFiltrados, setClientesFiltrados] = useState<Cliente[]>([])
   // const [mostrarClienteForm, setMostrarClienteForm] = useState(false)
   const [servicoSelecionado, setServicoSelecionado] = useState<Servico | null>(null)
+  const [isServicoPersonalizado, setIsServicoPersonalizado] = useState(false)
 
   const {
     register,
@@ -45,11 +46,17 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
     data_inicio_date: string
     data_inicio_time: string
     duracao_personalizada?: number
-  }>()
+  }>({
+    defaultValues: {
+      servico_personalizado: false
+    }
+  })
 
   const watchServicoId = watch('servico_id')
   const watchDataInicio = watch('data_inicio_date')
   const watchHoraInicio = watch('data_inicio_time')
+  const watchServicoPersonalizado = watch('servico_personalizado')
+  const watchValorServicoPersonalizado = watch('valor_servico_personalizado')
 
   // Reset form quando modal abre/fecha
   useEffect(() => {
@@ -60,14 +67,21 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
         const dataFim = new Date(agendamento.data_fim)
         const duracaoMinutos = Math.round((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60))
 
+        const isPersonalizado = agendamento.servico_personalizado || false
+        setIsServicoPersonalizado(isPersonalizado)
+
         reset({
           cliente_id: agendamento.cliente_id,
-          servico_id: agendamento.servico_id,
+          servico_id: agendamento.servico_id || undefined,
           data_inicio_date: format(dataInicio, 'yyyy-MM-dd'),
           data_inicio_time: format(dataInicio, 'HH:mm'),
           duracao_personalizada: duracaoMinutos,
           observacoes: agendamento.observacoes || '',
-          valor_desconto: agendamento.valor_desconto || 0
+          valor_desconto: agendamento.valor_desconto || 0,
+          servico_personalizado: isPersonalizado,
+          servico_personalizado_nome: agendamento.servico_personalizado_nome || '',
+          servico_personalizado_descricao: agendamento.servico_personalizado_descricao || '',
+          valor_servico_personalizado: agendamento.valor_servico || undefined
         })
       } else {
         // Novo agendamento
@@ -77,26 +91,48 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
           ? Math.round((dataFimDefault.getTime() - dataDefault.getTime()) / (1000 * 60))
           : 60
 
+        setIsServicoPersonalizado(false)
         reset({
           cliente_id: 0,
-          servico_id: 0,
+          servico_id: undefined,
           data_inicio_date: format(dataDefault, 'yyyy-MM-dd'),
           data_inicio_time: format(dataDefault, 'HH:mm'),
           duracao_personalizada: duracaoMinutos,
           observacoes: '',
-          valor_desconto: 0
+          valor_desconto: 0,
+          servico_personalizado: false,
+          servico_personalizado_nome: '',
+          servico_personalizado_descricao: '',
+          valor_servico_personalizado: undefined
         })
       }
     }
-  }, [isOpen, agendamento, selectedDate, reset])
+  }, [isOpen, agendamento, selectedDate, selectedEndDate, reset])
 
   // Atualizar serviço selecionado
   useEffect(() => {
-    if (watchServicoId) {
+    if (watchServicoId && !isServicoPersonalizado) {
       const servico = servicos.find(s => s.id === Number(watchServicoId))
       setServicoSelecionado(servico || null)
+    } else {
+      setServicoSelecionado(null)
     }
-  }, [watchServicoId, servicos])
+  }, [watchServicoId, servicos, isServicoPersonalizado])
+
+  // Sincronizar estado do checkbox com o form
+  useEffect(() => {
+    const isPersonalizado = watchServicoPersonalizado || false
+    setIsServicoPersonalizado(isPersonalizado)
+
+    // Limpar campos quando alternar entre personalizado e não personalizado
+    if (isPersonalizado) {
+      setValue('servico_id', undefined)
+    } else {
+      setValue('servico_personalizado_nome', '')
+      setValue('servico_personalizado_descricao', '')
+      setValue('valor_servico_personalizado', undefined)
+    }
+  }, [watchServicoPersonalizado, setValue])
 
   // Filtrar clientes baseado na busca
   useEffect(() => {
@@ -139,9 +175,16 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
   }
 
   const calcularValorTotal = () => {
-    if (!servicoSelecionado) return 0
+    let valorBase = 0
+
+    if (isServicoPersonalizado) {
+      valorBase = Number(watchValorServicoPersonalizado) || 0
+    } else if (servicoSelecionado) {
+      valorBase = servicoSelecionado.preco
+    }
+
     const valorDesconto = watch('valor_desconto') || 0
-    return Math.max(0, servicoSelecionado.preco - valorDesconto)
+    return Math.max(0, valorBase - valorDesconto)
   }
 
   const onSubmit = async (data: any) => {
@@ -150,19 +193,40 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
       const duracaoMinutos = Number(data.duracao_personalizada) || 60
       const dataFim = addMinutes(dataInicio, duracaoMinutos)
 
-      const agendamentoData: AgendamentoCreate = {
+      const agendamentoData: any = {
         cliente_id: Number(data.cliente_id),
-        servico_id: Number(data.servico_id),
         data_inicio: dataInicio.toISOString(),
         data_fim: dataFim.toISOString(),
         observacoes: data.observacoes || undefined,
-        valor_desconto: Number(data.valor_desconto) || undefined
+        valor_desconto: Number(data.valor_desconto) || 0
       }
 
+      // Adicionar campos específicos baseado no tipo de serviço
+      if (isServicoPersonalizado) {
+        agendamentoData.servico_id = null  // Enviar null explicitamente
+        agendamentoData.servico_personalizado = true
+        agendamentoData.servico_personalizado_nome = data.servico_personalizado_nome
+        agendamentoData.servico_personalizado_descricao = data.servico_personalizado_descricao || undefined
+        agendamentoData.valor_servico_personalizado = Number(data.valor_servico_personalizado)
+      } else {
+        agendamentoData.servico_id = Number(data.servico_id)
+        agendamentoData.servico_personalizado = false
+      }
+
+      console.log('Dados sendo enviados:', JSON.stringify(agendamentoData, null, 2)) // Debug
       await onSave(agendamentoData)
       onClose()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar agendamento:', error)
+      console.error('Detalhes do erro:', JSON.stringify(error.response?.data, null, 2)) // Ver detalhes do erro 422
+
+      // Mostrar erro para o usuário
+      if (error.response?.data?.detail) {
+        const errorMsg = Array.isArray(error.response.data.detail)
+          ? error.response.data.detail.map((e: any) => `${e.loc?.join('.')} - ${e.msg}`).join('\n')
+          : error.response.data.detail
+        alert(`Erro ao criar agendamento:\n${errorMsg}`)
+      }
     }
   }
 
@@ -191,7 +255,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6" autoComplete="off">
           {/* Cliente */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -205,6 +269,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
                 placeholder="Buscar cliente por nome, telefone ou email..."
                 value={clienteBusca}
                 onChange={(e) => setClienteBusca(e.target.value)}
+                autoComplete="off"
               />
 
               {/* Lista de clientes filtrados */}
@@ -220,7 +285,6 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
                       <div className="font-medium">{cliente.nome}</div>
                       <div className="text-sm text-gray-500">
                         {cliente.telefone} {cliente.email && `• ${cliente.email}`}
-                        {cliente.is_vip && <span className="text-yellow-600 ml-2">⭐ VIP</span>}
                       </div>
                     </button>
                   ))}
@@ -235,28 +299,106 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
             )}
           </div>
 
-          {/* Serviço */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Scissors className="w-4 h-4 inline mr-1" />
-              Serviço *
+          {/* Toggle Serviço Personalizado */}
+          <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <input
+              type="checkbox"
+              id="servico_personalizado"
+              {...register('servico_personalizado')}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="servico_personalizado" className="text-sm font-medium text-gray-700 cursor-pointer">
+              Serviço Personalizado
             </label>
-            <select
-              {...register('servico_id', { required: true, min: 1 })}
-              className="input w-full"
-            >
-              <option value="">Selecione um serviço</option>
-              {servicos.map((servico) => (
-                <option key={servico.id} value={servico.id}>
-                  {servico.nome} - R$ {Number(servico.preco).toFixed(2)}
-                  {servico.categoria && ` (${servico.categoria})`}
-                </option>
-              ))}
-            </select>
-            {errors.servico_id && (
-              <p className="text-red-500 text-sm mt-1">Selecione um serviço</p>
-            )}
+            <span className="text-xs text-gray-500">(Marque para criar um serviço específico)</span>
           </div>
+
+          {/* Serviço Predefinido */}
+          {!isServicoPersonalizado && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Scissors className="w-4 h-4 inline mr-1" />
+                Serviço *
+              </label>
+              <select
+                {...register('servico_id', { required: !isServicoPersonalizado, min: 1 })}
+                className="input w-full"
+              >
+                <option value="">Selecione um serviço</option>
+                {servicos.map((servico) => (
+                  <option key={servico.id} value={servico.id}>
+                    {servico.nome} - R$ {Number(servico.preco).toFixed(2)}
+                    {servico.categoria && ` (${servico.categoria})`}
+                  </option>
+                ))}
+              </select>
+              {errors.servico_id && (
+                <p className="text-red-500 text-sm mt-1">Selecione um serviço</p>
+              )}
+            </div>
+          )}
+
+          {/* Campos de Serviço Personalizado */}
+          {isServicoPersonalizado && (
+            <div className="space-y-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <h4 className="font-medium text-purple-900">Detalhes do Serviço Personalizado</h4>
+
+              {/* Nome do Serviço */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome do Serviço *
+                </label>
+                <input
+                  type="text"
+                  {...register('servico_personalizado_nome', {
+                    required: isServicoPersonalizado ? 'Nome do serviço é obrigatório' : false
+                  })}
+                  className="input w-full"
+                  placeholder="Ex: Corte especial, Tratamento customizado..."
+                  autoComplete="off"
+                />
+                {errors.servico_personalizado_nome && (
+                  <p className="text-red-500 text-sm mt-1">{errors.servico_personalizado_nome.message}</p>
+                )}
+              </div>
+
+              {/* Descrição do Serviço */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Descrição (Opcional)
+                </label>
+                <textarea
+                  {...register('servico_personalizado_descricao')}
+                  className="input w-full"
+                  rows={2}
+                  placeholder="Descreva o serviço personalizado..."
+                />
+              </div>
+
+              {/* Valor do Serviço */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <DollarSign className="w-4 h-4 inline mr-1" />
+                  Valor do Serviço (R$) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...register('valor_servico_personalizado', {
+                    required: isServicoPersonalizado ? 'Valor do serviço é obrigatório' : false,
+                    min: { value: 0, message: 'Valor deve ser maior ou igual a zero' }
+                  })}
+                  className="input w-full"
+                  placeholder="0.00"
+                  autoComplete="off"
+                />
+                {errors.valor_servico_personalizado && (
+                  <p className="text-red-500 text-sm mt-1">{errors.valor_servico_personalizado.message}</p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Data e Hora */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -315,19 +457,24 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
           </div>
 
           {/* Informações do Serviço */}
-          {servicoSelecionado && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">Detalhes do Serviço</h4>
+          {(servicoSelecionado || (isServicoPersonalizado && watchValorServicoPersonalizado)) && (
+            <div className={`border rounded-lg p-4 ${isServicoPersonalizado ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
+              <h4 className={`font-medium mb-2 ${isServicoPersonalizado ? 'text-purple-900' : 'text-blue-900'}`}>
+                Resumo do Serviço
+              </h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-blue-700">Preço base:</span> R$ {Number(servicoSelecionado.preco).toFixed(2)}
+                  <span className={isServicoPersonalizado ? 'text-purple-700' : 'text-blue-700'}>Preço base:</span> R${' '}
+                  {isServicoPersonalizado
+                    ? Number(watchValorServicoPersonalizado || 0).toFixed(2)
+                    : Number(servicoSelecionado?.preco || 0).toFixed(2)}
                 </div>
-                {servicoSelecionado.categoria && (
+                {!isServicoPersonalizado && servicoSelecionado?.categoria && (
                   <div>
                     <span className="text-blue-700">Categoria:</span> {servicoSelecionado.categoria}
                   </div>
                 )}
-                {servicoSelecionado.descricao && (
+                {!isServicoPersonalizado && servicoSelecionado?.descricao && (
                   <div className="col-span-2">
                     <span className="text-blue-700">Descrição:</span> {servicoSelecionado.descricao}
                   </div>
@@ -349,8 +496,9 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
               {...register('valor_desconto')}
               className="input w-full"
               placeholder="0.00"
+              autoComplete="off"
             />
-            {servicoSelecionado && (
+            {(servicoSelecionado || (isServicoPersonalizado && watchValorServicoPersonalizado)) && (
               <p className="text-sm text-gray-600 mt-1">
                 Valor final: R$ {calcularValorTotal().toFixed(2)}
               </p>

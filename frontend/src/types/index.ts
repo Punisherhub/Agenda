@@ -50,7 +50,7 @@ export interface Agendamento {
   data_agendamento: string
   data_inicio: string
   data_fim: string
-  status: 'agendado' | 'confirmado' | 'em_andamento' | 'concluido' | 'cancelado' | 'nao_compareceu'
+  status: 'AGENDADO' | 'CONFIRMADO' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'CANCELADO' | 'NAO_COMPARECEU'
   observacoes: string | null
   observacoes_internas: string | null
   valor_servico: number
@@ -60,13 +60,18 @@ export interface Agendamento {
   avaliacao_nota: number | null
   avaliacao_comentario: string | null
   cliente_id: number
-  servico_id: number
+  servico_id: number | null  // Nullable para serviços personalizados
   vendedor_id: number
   estabelecimento_id: number
   created_at: string
   updated_at: string
   canceled_at: string | null
   completed_at: string | null
+
+  // Campos de serviço personalizado
+  servico_personalizado?: boolean
+  servico_personalizado_nome?: string
+  servico_personalizado_descricao?: string
 
   // Dados relacionados (quando incluídos)
   cliente?: Cliente
@@ -101,11 +106,17 @@ export interface LoginResponse {
 
 export interface AgendamentoCreate {
   cliente_id: number
-  servico_id: number
+  servico_id?: number  // Opcional se for serviço personalizado
   data_inicio: string
   data_fim?: string
   observacoes?: string
   valor_desconto?: number
+
+  // Campos para serviço personalizado
+  servico_personalizado?: boolean
+  servico_personalizado_nome?: string
+  servico_personalizado_descricao?: string
+  valor_servico_personalizado?: number
 }
 
 export interface ClienteCreate {

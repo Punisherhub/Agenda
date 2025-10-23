@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 
 from app.database import get_db
 from app.utils.auth import get_current_active_user
+from app.utils.permissions import check_admin_or_manager
 from app.models.user import User
 from app.schemas.relatorio import DashboardRelatorios
 from app.services.relatorio_service import RelatorioService
@@ -28,7 +29,7 @@ async def get_dashboard_relatorios(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Retorna dashboard completo de relatórios financeiros.
+    Retorna dashboard completo de relatórios financeiros - Apenas ADMIN e MANAGER.
 
     Inclui:
     - Resumo financeiro do período
@@ -38,6 +39,7 @@ async def get_dashboard_relatorios(
     - Receita diária
     """
     check_user_has_estabelecimento(current_user)
+    check_admin_or_manager(current_user)
 
     # Definir período padrão (últimos 30 dias)
     if not data_fim:

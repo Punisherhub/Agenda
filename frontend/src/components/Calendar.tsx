@@ -3,9 +3,9 @@ import { Calendar as BigCalendar, dateFnsLocalizer, Views, View } from 'react-bi
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
-import { format, parse, startOfWeek, getDay, addMinutes } from 'date-fns'
+import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Plus, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { Agendamento, Servico, Cliente } from '../types'
 import '../styles/calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
@@ -38,7 +38,6 @@ interface CalendarProps {
   clientes: Cliente[]
   onSelectSlot: (slotInfo: { start: Date; end: Date; slots: Date[] }) => void
   onSelectEvent: (event: CalendarEvent) => void
-  onCreateAgendamento: (data: { start: Date; end: Date }) => void
   onEventResize?: (data: { event: CalendarEvent; start: Date; end: Date }) => void
   onEventDrop?: (data: { event: CalendarEvent; start: Date; end: Date }) => void
   loading?: boolean
@@ -50,7 +49,6 @@ const Calendar: React.FC<CalendarProps> = ({
   clientes,
   onSelectSlot,
   onSelectEvent,
-  onCreateAgendamento,
   onEventResize,
   onEventDrop,
   loading = false
@@ -226,7 +224,7 @@ const Calendar: React.FC<CalendarProps> = ({
   }
 
   // Componente customizado para célula de data no mês
-  const MonthDateHeader = ({ date, drilldownView, onDrillDown }: any) => {
+  const MonthDateHeader = ({ date }: any) => {
     // Contar agendamentos para este dia
     const dayEvents = events.filter(event => {
       const eventDate = format(event.start, 'yyyy-MM-dd')
@@ -382,8 +380,8 @@ const Calendar: React.FC<CalendarProps> = ({
         <DnDCalendar
           localizer={localizer}
           events={events}
-          startAccessor="start"
-          endAccessor="end"
+          startAccessor={(event: any) => new Date(event.start)}
+          endAccessor={(event: any) => new Date(event.end)}
           style={{ height: 600 }}
           view={view}
           onView={setView}

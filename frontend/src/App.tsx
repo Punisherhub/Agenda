@@ -13,6 +13,7 @@ import RelatoriosPage from './pages/RelatoriosPage'
 // Components
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import RoleProtectedRoute from './components/RoleProtectedRoute'
 
 const queryClient = new QueryClient()
 
@@ -33,9 +34,21 @@ function App() {
             <Route index element={<DashboardPage />} />
             <Route path="agendamentos" element={<AgendamentosPage />} />
             <Route path="clientes" element={<ClientesPage />} />
-            <Route path="servicos" element={<ServicosPage />} />
-            <Route path="materiais" element={<MateriaisPage />} />
-            <Route path="relatorios" element={<RelatoriosPage />} />
+            <Route path="servicos" element={
+              <RoleProtectedRoute allowedRoles={['admin', 'manager']}>
+                <ServicosPage />
+              </RoleProtectedRoute>
+            } />
+            <Route path="materiais" element={
+              <RoleProtectedRoute allowedRoles={['admin', 'manager']}>
+                <MateriaisPage />
+              </RoleProtectedRoute>
+            } />
+            <Route path="relatorios" element={
+              <RoleProtectedRoute allowedRoles={['admin', 'manager']}>
+                <RelatoriosPage />
+              </RoleProtectedRoute>
+            } />
           </Route>
         </Routes>
       </Router>

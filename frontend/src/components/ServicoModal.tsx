@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
-import { Servico, ServicoCreate } from '../types'
+import { Servico } from '../types'
 
 interface ServicoModalProps {
   isOpen: boolean
@@ -128,7 +128,7 @@ const ServicoModal: React.FC<ServicoModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6" autoComplete="off">
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
               {error}

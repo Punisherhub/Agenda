@@ -10,8 +10,7 @@ import type {
   ClienteCreate,
   Material,
   MaterialCreate,
-  ConsumoMaterialCreate,
-  DashboardRelatorios
+  ConsumoMaterialCreate
 } from '../types'
 
 // Use /api em dev para usar o proxy do Vite e evitar CORS

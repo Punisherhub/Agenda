@@ -56,7 +56,7 @@ const MaterialModal: React.FC<MaterialModalProps> = ({
         nome: '',
         descricao: '',
         valor_custo: '',
-        unidade_medida: 'unidade',
+        unidade_medida: 'UNIDADE',
         quantidade_estoque: '',
         quantidade_minima: '',
         marca: '',
@@ -127,7 +127,7 @@ const MaterialModal: React.FC<MaterialModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6" autoComplete="off">
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
               {error}

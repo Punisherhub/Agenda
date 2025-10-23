@@ -17,7 +17,7 @@ const MateriaisPage: React.FC = () => {
 
   const queryClient = useQueryClient()
 
-  const { data: materiais, isLoading, refetch } = useQuery({
+  const { data: materiais, isLoading } = useQuery({
     queryKey: ['materiais', filtros],
     queryFn: () => materiaisApi.list(filtros)
   })

@@ -64,19 +64,7 @@ class AgendamentoService:
         agendamento_data: AgendamentoCreate,
         current_user: User
     ) -> Agendamento:
-        """Criar novo agendamento."""
-
-        # Verificar se o serviço pertence ao estabelecimento do usuário
-        servico = db.query(Servico).filter(
-            Servico.id == agendamento_data.servico_id,
-            Servico.estabelecimento_id == current_user.estabelecimento_id
-        ).first()
-
-        if not servico:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Serviço não encontrado ou não pertence ao seu estabelecimento"
-            )
+        """Criar novo agendamento (serviço predefinido ou personalizado)."""
 
         # Verificar se cliente existe
         cliente = db.query(Cliente).filter(Cliente.id == agendamento_data.cliente_id).first()
@@ -86,11 +74,55 @@ class AgendamentoService:
                 detail="Cliente não encontrado"
             )
 
-        # Usar data_fim fornecida ou calcular baseada na duração do serviço
+        # Variáveis para dados do serviço
+        servico = None
+        valor_servico = None
+        duracao_minutos = 60  # Duração padrão de 1 hora para serviços personalizados
+
+        # Lógica para serviço personalizado vs predefinido
+        if agendamento_data.servico_personalizado:
+            # Serviço personalizado - validar campos obrigatórios
+            if not agendamento_data.servico_personalizado_nome:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Nome do serviço personalizado é obrigatório"
+                )
+
+            if agendamento_data.valor_servico_personalizado is None or agendamento_data.valor_servico_personalizado <= 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Valor do serviço personalizado é obrigatório e deve ser maior que zero"
+                )
+
+            valor_servico = agendamento_data.valor_servico_personalizado
+            duracao_minutos = 60  # Duração padrão de 1 hora para serviços personalizados
+        else:
+            # Serviço predefinido - exigir servico_id
+            if not agendamento_data.servico_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Serviço deve ser selecionado ou marcar como personalizado"
+                )
+
+            servico = db.query(Servico).filter(
+                Servico.id == agendamento_data.servico_id,
+                Servico.estabelecimento_id == current_user.estabelecimento_id
+            ).first()
+
+            if not servico:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Serviço não encontrado ou não pertence ao seu estabelecimento"
+                )
+
+            valor_servico = servico.preco
+            duracao_minutos = servico.duracao_minutos
+
+        # Calcular data_fim
         if agendamento_data.data_fim:
             data_fim = agendamento_data.data_fim
         else:
-            data_fim = agendamento_data.data_inicio + timedelta(minutes=servico.duracao_minutos)
+            data_fim = agendamento_data.data_inicio + timedelta(minutes=duracao_minutos)
 
         # Verificar conflitos de horário
         conflito = db.query(Agendamento).filter(
@@ -109,8 +141,7 @@ class AgendamentoService:
                 detail=f"Conflito de horário com agendamento existente (ID: {conflito.id})"
             )
 
-        # Calcular valores
-        valor_servico = servico.preco
+        # Calcular valores finais
         valor_desconto = agendamento_data.valor_desconto or 0
         valor_final = valor_servico - valor_desconto
 
@@ -125,9 +156,13 @@ class AgendamentoService:
             valor_desconto=valor_desconto,
             valor_final=valor_final,
             cliente_id=agendamento_data.cliente_id,
-            servico_id=agendamento_data.servico_id,
+            servico_id=agendamento_data.servico_id,  # Será None se personalizado
             vendedor_id=current_user.id,
-            estabelecimento_id=current_user.estabelecimento_id
+            estabelecimento_id=current_user.estabelecimento_id,
+            # Campos de serviço personalizado
+            servico_personalizado=agendamento_data.servico_personalizado or False,
+            servico_personalizado_nome=agendamento_data.servico_personalizado_nome,
+            servico_personalizado_descricao=agendamento_data.servico_personalizado_descricao
         )
 
         db.add(db_agendamento)

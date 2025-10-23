@@ -149,12 +149,6 @@ const AgendamentosPage: React.FC = () => {
     setShowDetailModal(true)
   }
 
-  const handleCreateAgendamento = (data: { start: Date; end: Date }) => {
-    setSelectedSlot(data)
-    setSelectedAgendamento(null)
-    setShowAgendamentoModal(true)
-  }
-
   const handleSaveAgendamento = async (data: AgendamentoCreate) => {
     await createMutation.mutateAsync(data)
   }
@@ -219,16 +213,16 @@ const AgendamentosPage: React.FC = () => {
 
       await agendamentosApi.update(agendamento.id, agendamentoData)
 
-      // Revalidar dados em background (sem await)
+     
       queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-relatorios'] })
     } catch (error) {
       console.error('Erro ao redimensionar agendamento:', error)
 
-      // ⏪ ROLLBACK - Reverte para o estado anterior
+      
       queryClient.setQueryData(queryKey, previousData)
 
-      // Opcional: Mostrar notificação de erro ao usuário
+      
       alert('Erro ao redimensionar agendamento. Tente novamente.')
     }
   }
@@ -237,10 +231,10 @@ const AgendamentosPage: React.FC = () => {
     const agendamento = data.event.resource
     const queryKey = ['agendamentos', view === 'calendar' ? { data_inicio: calendarStart, data_fim: calendarEnd } : filtros]
 
-    // Snapshot do estado anterior para rollback
+    
     const previousData = queryClient.getQueryData(queryKey)
 
-    // Calcular nova data_fim mantendo a duração original
+    
     const duracao = agendamento.data_fim
       ? new Date(agendamento.data_fim).getTime() - new Date(agendamento.data_inicio).getTime()
       : 60 * 60 * 1000 // 1 hora padrão
@@ -248,7 +242,7 @@ const AgendamentosPage: React.FC = () => {
     const novaDataFim = new Date(data.start.getTime() + duracao)
 
     try {
-      // 🚀 OPTIMISTIC UPDATE - Atualiza imediatamente a UI
+      
       queryClient.setQueryData(queryKey, (old: any) => {
         if (!old?.agendamentos) return old
 
@@ -439,7 +433,6 @@ const AgendamentosPage: React.FC = () => {
           clientes={clientes?.clientes || []}
           onSelectSlot={handleSlotSelect}
           onSelectEvent={handleEventSelect}
-          onCreateAgendamento={handleCreateAgendamento}
           onEventResize={handleEventResize}
           onEventDrop={handleEventDrop}
           loading={isLoading}

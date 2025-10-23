@@ -4,6 +4,8 @@ from .estabelecimento import Estabelecimento
 from .servico import Servico
 from .cliente import Cliente
 from .agendamento import Agendamento, StatusAgendamento, FormaPagamento
+from .material import Material, UnidadeMedida
+from .consumo_material import ConsumoMaterial
 
 __all__ = [
     "User",
@@ -14,5 +16,8 @@ __all__ = [
     "Cliente",
     "Agendamento",
     "StatusAgendamento",
-    "FormaPagamento"
+    "FormaPagamento",
+    "Material",
+    "UnidadeMedida",
+    "ConsumoMaterial"
 ]

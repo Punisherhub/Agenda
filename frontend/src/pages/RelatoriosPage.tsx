@@ -5,8 +5,9 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
-import { TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart, Calendar } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart } from 'lucide-react'
 import { format, subDays } from 'date-fns'
+import type { ReceitaDiaria, MaterialEstoque, ServicoLucro, MaterialConsumo } from '../types'
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658']
 
@@ -40,7 +41,7 @@ const RelatoriosPage: React.FC = () => {
     : 0
 
   // Preparar dados para gráfico de receita diária
-  const receitaDiariaData = dashboard.receita_diaria.map(item => ({
+  const receitaDiariaData = dashboard.receita_diaria.map((item: ReceitaDiaria) => ({
     data: format(new Date(item.data), 'dd/MM'),
     Receita: item.receita,
     Custos: item.custos,
@@ -50,17 +51,18 @@ const RelatoriosPage: React.FC = () => {
   // Preparar dados de estoque para gráfico
   const estoqueData = dashboard.estoque_materiais
     .slice(0, 10) // Top 10 materiais
-    .map(item => ({
+    .map((item: MaterialEstoque) => ({
       nome: item.nome.length > 20 ? item.nome.substring(0, 17) + '...' : item.nome,
       valor: item.valor_total_estoque,
-      quantidade: item.quantidade_estoque
+      quantidade: item.quantidade_estoque,
+      unidade: item.unidade_medida
     }))
 
   // Preparar dados de serviços por lucro
   const servicosData = dashboard.servicos_lucro
-    .sort((a, b) => b.lucro_total - a.lucro_total)
+    .sort((a: ServicoLucro, b: ServicoLucro) => b.lucro_total - a.lucro_total)
     .slice(0, 8)
-    .map(item => ({
+    .map((item: ServicoLucro) => ({
       nome: item.servico_nome.length > 15 ? item.servico_nome.substring(0, 12) + '...' : item.servico_nome,
       lucro: item.lucro_total,
       receita: item.receita_total,
@@ -69,9 +71,9 @@ const RelatoriosPage: React.FC = () => {
 
   // Preparar dados de materiais mais consumidos
   const materiaisConsumoData = dashboard.materiais_consumo
-    .sort((a, b) => b.custo_total - a.custo_total)
+    .sort((a: MaterialConsumo, b: MaterialConsumo) => b.custo_total - a.custo_total)
     .slice(0, 6)
-    .map(item => ({
+    .map((item: MaterialConsumo) => ({
       nome: item.material_nome,
       value: item.custo_total
     }))
@@ -217,16 +219,18 @@ const RelatoriosPage: React.FC = () => {
 
         {/* Estoque de Materiais */}
         <div className="card p-6">
-          <h3 className="text-lg font-semibold mb-4">Valor do Estoque (Top 10)</h3>
+          <h3 className="text-lg font-semibold mb-4">Quantidade em Estoque (Top 10)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={estoqueData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="nome" angle={-45} textAnchor="end" height={80} />
               <YAxis />
               <Tooltip
-                formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                formatter={(value: number, _name: string, props: any) =>
+                  `${value.toFixed(2)} ${props.payload.unidade?.toLowerCase() || ''}`
+                }
               />
-              <Bar dataKey="valor" fill="#8b5cf6" />
+              <Bar dataKey="quantidade" fill="#8b5cf6" name="Quantidade" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -241,12 +245,12 @@ const RelatoriosPage: React.FC = () => {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                label={({ name, percent }: any) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
               >
-                {materiaisConsumoData.map((entry, index) => (
+                {materiaisConsumoData.map((_entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -273,8 +277,8 @@ const RelatoriosPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {dashboard.servicos_lucro.slice(0, 5).map((servico) => (
-                  <tr key={servico.servico_id}>
+                {dashboard.servicos_lucro.slice(0, 5).map((servico: ServicoLucro, index: number) => (
+                  <tr key={`servico-${servico.servico_id}-${servico.servico_nome}-${index}`}>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       {servico.servico_nome}
                     </td>
@@ -306,8 +310,8 @@ const RelatoriosPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {dashboard.materiais_consumo.slice(0, 5).map((material) => (
-                  <tr key={material.material_id}>
+                {dashboard.materiais_consumo.slice(0, 5).map((material: MaterialConsumo, index: number) => (
+                  <tr key={`material-${material.material_id}-${index}`}>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       {material.material_nome}
                     </td>

@@ -4,6 +4,7 @@ from typing import Optional, List
 from datetime import date
 from app.database import get_db
 from app.utils.auth import get_current_active_user, get_optional_current_user
+from app.utils.permissions import check_admin_or_manager
 from app.models.user import User
 from app.schemas.servico import (
     ServicoCreate, ServicoUpdate, ServicoResponse, ServicoList, ServicoPublic
@@ -68,9 +69,9 @@ async def criar_servico(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Criar novo serviço"""
+    """Criar novo serviço - Apenas ADMIN e MANAGER"""
     check_user_has_estabelecimento(current_user)
-    # Roles são apenas para organização - todos podem criar serviços
+    check_admin_or_manager(current_user)
 
     servico = ServicoService.create_servico(
         db=db,
@@ -104,9 +105,9 @@ async def atualizar_servico(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Atualizar serviço"""
+    """Atualizar serviço - Apenas ADMIN e MANAGER"""
     check_user_has_estabelecimento(current_user)
-    # Roles são apenas para organização - todos podem editar serviços
+    check_admin_or_manager(current_user)
 
     servico = ServicoService.update_servico(
         db=db,
@@ -123,9 +124,9 @@ async def desativar_servico(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Desativar serviço"""
+    """Desativar serviço - Apenas ADMIN e MANAGER"""
     check_user_has_estabelecimento(current_user)
-    # Roles são apenas para organização - todos podem desativar serviços
+    check_admin_or_manager(current_user)
 
     servico = ServicoService.deactivate_servico(
         db=db,

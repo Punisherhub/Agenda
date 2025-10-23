@@ -13,14 +13,26 @@ const Layout: React.FC = () => {
     navigate('/login')
   }
 
-  const navItems = [
-    { path: '/', icon: Home, label: 'Dashboard' },
-    { path: '/agendamentos', icon: Calendar, label: 'Agendamentos' },
-    { path: '/clientes', icon: Users, label: 'Clientes' },
-    { path: '/servicos', icon: Briefcase, label: 'Serviços' },
-    { path: '/materiais', icon: Package, label: 'Materiais' },
-    { path: '/relatorios', icon: BarChart3, label: 'Relatórios' },
+  // Verificar se usuário tem permissão (ADMIN ou MANAGER)
+  // Backend retorna roles em lowercase
+  const isAdminOrManager = user.role === 'admin' || user.role === 'manager'
+
+  // Itens de menu disponíveis para todos
+  const allNavItems = [
+    { path: '/', icon: Home, label: 'Dashboard', requiredRole: null },
+    { path: '/agendamentos', icon: Calendar, label: 'Agendamentos', requiredRole: null },
+    { path: '/clientes', icon: Users, label: 'Clientes', requiredRole: null },
+    { path: '/servicos', icon: Briefcase, label: 'Serviços', requiredRole: 'ADMIN_MANAGER' },
+    { path: '/materiais', icon: Package, label: 'Materiais', requiredRole: 'ADMIN_MANAGER' },
+    { path: '/relatorios', icon: BarChart3, label: 'Relatórios', requiredRole: 'ADMIN_MANAGER' },
   ]
+
+  // Filtrar itens de menu baseado na role do usuário
+  const navItems = allNavItems.filter(item => {
+    if (!item.requiredRole) return true // Disponível para todos
+    if (item.requiredRole === 'ADMIN_MANAGER') return isAdminOrManager
+    return false
+  })
 
   return (
     <div className="min-h-screen bg-gray-50">
