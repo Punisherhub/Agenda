@@ -10,7 +10,16 @@ import type {
   ClienteCreate,
   Material,
   MaterialCreate,
-  ConsumoMaterialCreate
+  ConsumoMaterialCreate,
+  ConfiguracaoFidelidade,
+  ConfiguracaoFidelidadeCreate,
+  ConfiguracaoFidelidadeUpdate,
+  Premio,
+  PremioCreate,
+  PremioUpdate,
+  ResgatePremio,
+  ResgatePremioCreate,
+  PremioDisponivel
 } from '../types'
 
 // Use /api em dev para usar o proxy do Vite e evitar CORS
@@ -248,6 +257,76 @@ export const relatoriosApi = {
     data_fim?: string
   }) => {
     const response = await api.get('/relatorios/dashboard', { params })
+    return response.data
+  },
+}
+
+// Fidelidade
+export const fidelidadeApi = {
+  // Configuração
+  getConfiguracao: async (): Promise<ConfiguracaoFidelidade> => {
+    const response = await api.get('/fidelidade/configuracao')
+    return response.data
+  },
+
+  createConfiguracao: async (data: ConfiguracaoFidelidadeCreate): Promise<ConfiguracaoFidelidade> => {
+    const response = await api.post('/fidelidade/configuracao', data)
+    return response.data
+  },
+
+  updateConfiguracao: async (data: ConfiguracaoFidelidadeUpdate): Promise<ConfiguracaoFidelidade> => {
+    const response = await api.put('/fidelidade/configuracao', data)
+    return response.data
+  },
+
+  // Prêmios
+  listPremios: async (apenasAtivos: boolean = true): Promise<Premio[]> => {
+    const response = await api.get('/fidelidade/premios', {
+      params: { apenas_ativos: apenasAtivos }
+    })
+    return response.data
+  },
+
+  getPremio: async (id: number): Promise<Premio> => {
+    const response = await api.get(`/fidelidade/premios/${id}`)
+    return response.data
+  },
+
+  createPremio: async (data: PremioCreate): Promise<Premio> => {
+    const response = await api.post('/fidelidade/premios', data)
+    return response.data
+  },
+
+  updatePremio: async (id: number, data: PremioUpdate): Promise<Premio> => {
+    const response = await api.put(`/fidelidade/premios/${id}`, data)
+    return response.data
+  },
+
+  deletePremio: async (id: number) => {
+    const response = await api.delete(`/fidelidade/premios/${id}`)
+    return response.data
+  },
+
+  // Resgates
+  listarPremiosDisponiveis: async (clienteId: number): Promise<PremioDisponivel[]> => {
+    const response = await api.get(`/fidelidade/premios-disponiveis/${clienteId}`)
+    return response.data
+  },
+
+  resgatarPremio: async (data: ResgatePremioCreate): Promise<ResgatePremio> => {
+    const response = await api.post('/fidelidade/resgatar', data)
+    return response.data
+  },
+
+  listarResgates: async (clienteId: number): Promise<ResgatePremio[]> => {
+    const response = await api.get(`/fidelidade/resgates/${clienteId}`)
+    return response.data
+  },
+
+  usarResgate: async (resgateId: number, agendamentoId: number): Promise<ResgatePremio> => {
+    const response = await api.patch(`/fidelidade/resgates/${resgateId}/usar`, null, {
+      params: { agendamento_id: agendamentoId }
+    })
     return response.data
   },
 }

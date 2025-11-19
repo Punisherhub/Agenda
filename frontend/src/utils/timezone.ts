@@ -59,7 +59,7 @@ export function getBrazilNow(): Date {
 }
 
 /**
- * Converte Date para string ISO no timezone do Brasil
+ * Converte Date para string ISO no timezone do Brasil com offset -03:00
  */
 export function toBrazilISO(date: Date): string {
   // Pega os componentes da data no timezone do Brasil
@@ -70,7 +70,13 @@ export function toBrazilISO(date: Date): string {
   const minute = date.toLocaleString('en-US', { timeZone: BRAZIL_TIMEZONE, minute: '2-digit' })
   const second = date.toLocaleString('en-US', { timeZone: BRAZIL_TIMEZONE, second: '2-digit' })
 
-  return `${year}-${month}-${day}T${hour}:${minute}:${second}`
+  // Garantir que todos os componentes tenham 2 dígitos (fix para segundos)
+  const paddedHour = hour.padStart(2, '0')
+  const paddedMinute = minute.padStart(2, '0')
+  const paddedSecond = second.padStart(2, '0')
+
+  // Incluir offset do Brasil (-03:00)
+  return `${year}-${month}-${day}T${paddedHour}:${paddedMinute}:${paddedSecond}-03:00`
 }
 
 /**

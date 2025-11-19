@@ -41,6 +41,7 @@ interface CalendarProps {
   onEventResize?: (data: { event: CalendarEvent; start: Date; end: Date }) => void
   onEventDrop?: (data: { event: CalendarEvent; start: Date; end: Date }) => void
   loading?: boolean
+  processingIds?: Set<number>
 }
 
 const Calendar: React.FC<CalendarProps> = ({
@@ -51,7 +52,8 @@ const Calendar: React.FC<CalendarProps> = ({
   onSelectEvent,
   onEventResize,
   onEventDrop,
-  loading = false
+  loading = false,
+  processingIds = new Set()
 }) => {
   const [view, setView] = useState<View>(Views.WEEK)
   const [date, setDate] = useState(new Date())
@@ -88,13 +90,9 @@ const Calendar: React.FC<CalendarProps> = ({
       case 'CONFIRMADO':
         backgroundColor = '#10b981' // green
         break
-      case 'EM_ANDAMENTO':
-        backgroundColor = '#f59e0b' // yellow/amber
-        break
       case 'CONCLUIDO':
         backgroundColor = '#059669' // emerald escuro
         fontWeight = 'bold'
-        textDecoration = 'underline'
         break
       case 'CANCELADO':
         backgroundColor = '#ef4444' // red
@@ -188,9 +186,15 @@ const Calendar: React.FC<CalendarProps> = ({
     const agendamento = event.resource
     const servico = servicos.find(s => s.id === agendamento.servico_id)
     const isConcluido = agendamento.status === 'CONCLUIDO'
+    const isProcessing = processingIds.has(agendamento.id)
 
     return (
-      <div className="p-1">
+      <div className="p-1 relative">
+        {isProcessing && (
+          <div className="absolute inset-0 bg-white bg-opacity-60 flex items-center justify-center z-10 rounded">
+            <span className="animate-spin text-2xl">⟳</span>
+          </div>
+        )}
         <div className={`font-medium text-sm truncate ${isConcluido ? 'font-bold' : ''}`}>
           {isConcluido && '✓ '}
           {event.title}
@@ -232,17 +236,8 @@ const Calendar: React.FC<CalendarProps> = ({
       return eventDate === currentDate
     })
 
-    const handleClick = (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      handleDrillDown(date)
-    }
-
     return (
-      <div
-        className="rbc-date-cell cursor-pointer hover:bg-blue-50 transition-colors"
-        onClick={handleClick}
-      >
+      <div className="rbc-date-cell">
         <div className="font-semibold text-gray-700">
           {format(date, 'd')}
         </div>
@@ -253,6 +248,24 @@ const Calendar: React.FC<CalendarProps> = ({
             </span>
           </div>
         )}
+      </div>
+    )
+  }
+
+  // Componente wrapper para célula do dia inteiro (torna toda área clicável)
+  const DateCellWrapper = ({ children, value }: any) => {
+    const handleClick = () => {
+      if (view === Views.MONTH) {
+        handleDrillDown(value)
+      }
+    }
+
+    return (
+      <div
+        className={view === Views.MONTH ? 'month-day-cell-clickable' : ''}
+        onClick={handleClick}
+      >
+        {children}
       </div>
     )
   }
@@ -295,6 +308,15 @@ const Calendar: React.FC<CalendarProps> = ({
     <DndProvider backend={HTML5Backend}>
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
         <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+
+          .animate-spin {
+            animation: spin 1s linear infinite;
+          }
+
           .rbc-calendar {
             font-family: inherit;
           }
@@ -359,21 +381,29 @@ const Calendar: React.FC<CalendarProps> = ({
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            cursor: default !important;
-            pointer-events: auto !important;
-          }
-          .rbc-month-view .rbc-date-cell button {
-            cursor: pointer;
-            pointer-events: auto !important;
+            pointer-events: none;
           }
           .rbc-month-view .rbc-row-segment {
             display: none;
           }
-          .rbc-month-view .rbc-day-bg {
-            cursor: default !important;
+
+          /* Tornar toda a célula do dia clicável no mês */
+          .month-day-cell-clickable {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
           }
-          .rbc-month-view .rbc-day-bg:hover {
-            background-color: inherit;
+          .month-day-cell-clickable:hover {
+            background-color: #eff6ff !important;
+          }
+          .month-day-cell-clickable:active {
+            background-color: #dbeafe !important;
+          }
+          .rbc-month-view .rbc-day-bg {
+            cursor: pointer;
           }
         `}</style>
 
@@ -398,6 +428,7 @@ const Calendar: React.FC<CalendarProps> = ({
           components={{
             toolbar: CustomToolbar,
             event: EventComponent as any,
+            dateCellWrapper: DateCellWrapper as any,
             month: {
               event: MonthEvent as any,
               dateHeader: MonthDateHeader as any
@@ -408,7 +439,6 @@ const Calendar: React.FC<CalendarProps> = ({
           step={30}
           timeslots={2}
           min={new Date(2000, 0, 1, 7, 0)} // 7:00 AM
-          max={new Date(2000, 0, 1, 20, 0)} // 8:00 PM
         />
       </div>
     </DndProvider>

@@ -25,6 +25,9 @@ class Cliente(Base):
     observacoes = Column(Text, nullable=True)
     preferencias = Column(Text, nullable=True)  # JSON string com preferências
 
+    # Programa de fidelidade
+    pontos = Column(Integer, default=0, nullable=False)
+
     # Status
     is_active = Column(Boolean, default=True)
 

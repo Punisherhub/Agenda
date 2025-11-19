@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, field_serializer
 from typing import Optional, List, Any, Union
 from datetime import datetime
 from decimal import Decimal
@@ -8,7 +8,6 @@ from enum import Enum
 class StatusAgendamento(str, Enum):
     AGENDADO = "AGENDADO"
     CONFIRMADO = "CONFIRMADO"
-    EM_ANDAMENTO = "EM_ANDAMENTO"
     CONCLUIDO = "CONCLUIDO"
     CANCELADO = "CANCELADO"
     NAO_COMPARECEU = "NAO_COMPARECEU"
@@ -74,11 +73,21 @@ class AgendamentoResponse(BaseModel):
     updated_at: Optional[datetime] = None
     canceled_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
 
     # Campos de serviço personalizado
     servico_personalizado: Optional[bool] = False
     servico_personalizado_nome: Optional[str] = None
     servico_personalizado_descricao: Optional[str] = None
+
+    @field_serializer('data_agendamento', 'data_inicio', 'data_fim', 'created_at', 'updated_at', 'canceled_at', 'completed_at', 'deleted_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info):
+        '''Converter datetime de UTC para timezone do Brasil antes de serializar'''
+        if dt is None:
+            return None
+        # Importar aqui para evitar circular import
+        from app.utils.timezone import to_brazil_tz
+        return to_brazil_tz(dt)
 
     class Config:
         from_attributes = True

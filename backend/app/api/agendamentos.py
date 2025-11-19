@@ -4,6 +4,7 @@ from typing import Optional, List
 from datetime import datetime, date
 from app.database import get_db
 from app.utils.auth import get_current_active_user
+from app.utils.timezone import to_brazil_tz
 from app.models.user import User
 from app.schemas.agendamento import (
     AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse,
@@ -56,9 +57,9 @@ async def listar_agendamentos(
     for ag in agendamentos:
         ag_dict = {
             "id": ag.id,
-            "data_agendamento": ag.data_agendamento,
-            "data_inicio": ag.data_inicio,
-            "data_fim": ag.data_fim,
+            "data_agendamento": to_brazil_tz(ag.data_agendamento) if ag.data_agendamento else None,
+            "data_inicio": to_brazil_tz(ag.data_inicio),
+            "data_fim": to_brazil_tz(ag.data_fim),
             "status": ag.status,
             "observacoes": ag.observacoes,
             "observacoes_internas": ag.observacoes_internas,
@@ -72,10 +73,10 @@ async def listar_agendamentos(
             "servico_id": ag.servico_id,
             "vendedor_id": ag.vendedor_id,
             "estabelecimento_id": ag.estabelecimento_id,
-            "created_at": ag.created_at,
-            "updated_at": ag.updated_at,
-            "canceled_at": ag.canceled_at,
-            "completed_at": ag.completed_at,
+            "created_at": to_brazil_tz(ag.created_at) if ag.created_at else None,
+            "updated_at": to_brazil_tz(ag.updated_at) if ag.updated_at else None,
+            "canceled_at": to_brazil_tz(ag.canceled_at) if ag.canceled_at else None,
+            "completed_at": to_brazil_tz(ag.completed_at) if ag.completed_at else None,
             # Campos de serviço personalizado
             "servico_personalizado": ag.servico_personalizado or False,
             "servico_personalizado_nome": ag.servico_personalizado_nome,

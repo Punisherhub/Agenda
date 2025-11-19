@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func
 from fastapi import HTTPException, status
 from typing import Optional, List
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 
 from app.models.agendamento import Agendamento, StatusAgendamento
 from app.models.user import User
@@ -31,7 +31,8 @@ class AgendamentoService:
             joinedload(Agendamento.servico),
             joinedload(Agendamento.vendedor)
         ).filter(
-            Agendamento.estabelecimento_id == estabelecimento_id
+            Agendamento.estabelecimento_id == estabelecimento_id,
+            Agendamento.deleted_at.is_(None)  # Não mostrar agendamentos excluídos
         )
 
         # Aplicar filtros
@@ -127,7 +128,7 @@ class AgendamentoService:
         # Verificar conflitos de horário
         conflito = db.query(Agendamento).filter(
             Agendamento.estabelecimento_id == current_user.estabelecimento_id,
-            Agendamento.status.in_([StatusAgendamento.AGENDADO, StatusAgendamento.CONFIRMADO, StatusAgendamento.EM_ANDAMENTO]),
+            Agendamento.status.in_([StatusAgendamento.AGENDADO, StatusAgendamento.CONFIRMADO]),
             or_(
                 and_(Agendamento.data_inicio <= agendamento_data.data_inicio, Agendamento.data_fim > agendamento_data.data_inicio),
                 and_(Agendamento.data_inicio < data_fim, Agendamento.data_fim >= data_fim),
@@ -206,15 +207,14 @@ class AgendamentoService:
         )
 
         # Atualizar campos fornecidos
-        update_data = agendamento_data.dict(exclude_unset=True)
+        update_data = agendamento_data.model_dump(exclude_unset=True)
 
         for field, value in update_data.items():
             if hasattr(agendamento, field):
                 setattr(agendamento, field, value)
 
         # Se mudou data/hora mas não forneceu data_fim, recalcular data_fim
-        update_dict = agendamento_data.dict(exclude_unset=True)
-        if 'data_inicio' in update_dict and update_dict['data_inicio'] and 'data_fim' not in update_dict:
+        if 'data_inicio' in update_data and update_data['data_inicio'] and 'data_fim' not in update_data:
             servico = db.query(Servico).filter(Servico.id == agendamento.servico_id).first()
             if servico and servico.duracao_minutos:
                 agendamento.data_fim = agendamento_data.data_inicio + timedelta(minutes=servico.duracao_minutos)
@@ -233,17 +233,37 @@ class AgendamentoService:
     ) -> Agendamento:
         """Atualizar apenas o status do agendamento."""
 
+        print(f"[AGENDAMENTO] update_status CHAMADO - ID: {agendamento_id}, Novo Status: {novo_status}")
+
         agendamento = AgendamentoService.get_agendamento(
             db, agendamento_id, current_user.estabelecimento_id
         )
 
+        print(f"[AGENDAMENTO] Status atual: {agendamento.status}, Mudando para: {novo_status}")
+
         agendamento.status = novo_status
 
         # Atualizar timestamps específicos
-        if novo_status == StatusAgendamento.CANCELADO:
+        # Comparar por .value porque vem do schema (Pydantic) e não do model (SQLAlchemy)
+        status_valor = novo_status.value if hasattr(novo_status, 'value') else str(novo_status)
+
+        if status_valor == StatusAgendamento.CANCELADO.value:
             agendamento.canceled_at = datetime.now()
-        elif novo_status == StatusAgendamento.CONCLUIDO:
+            print(f"[AGENDAMENTO] Marcado como cancelado")
+        elif status_valor == StatusAgendamento.CONCLUIDO.value:
             agendamento.completed_at = datetime.now()
+
+            # Sistema de fidelidade: adicionar pontos automaticamente
+            print(f"[AGENDAMENTO] Concluindo agendamento {agendamento_id}, processando fidelidade...")
+            try:
+                from app.services.fidelidade_service import FidelidadeService
+                pontos = FidelidadeService.processar_pontos_agendamento(db, agendamento_id)
+                print(f"[AGENDAMENTO] Fidelidade processada! Pontos adicionados: {pontos}")
+            except Exception as e:
+                # Não falhar o agendamento se houver erro no sistema de fidelidade
+                print(f"[AGENDAMENTO] ERRO ao processar pontos de fidelidade: {e}")
+                import traceback
+                traceback.print_exc()
 
         db.commit()
         db.refresh(agendamento)
@@ -267,7 +287,8 @@ class AgendamentoService:
             Agendamento.estabelecimento_id == estabelecimento_id,
             func.date(Agendamento.data_inicio) >= data_inicio,
             func.date(Agendamento.data_inicio) <= data_fim,
-            Agendamento.status != StatusAgendamento.CANCELADO
+            Agendamento.status != StatusAgendamento.CANCELADO,
+            Agendamento.deleted_at.is_(None)  # Não mostrar agendamentos excluídos
         ).order_by(Agendamento.data_inicio).all()
 
         return agendamentos
@@ -290,19 +311,17 @@ class AgendamentoService:
         agendamento_id: int,
         current_user: User
     ) -> None:
-        """Excluir permanentemente um agendamento (apenas se cancelado ou não compareceu)."""
+        """Excluir agendamento do calendário (soft delete ou hard delete conforme status)."""
 
         agendamento = AgendamentoService.get_agendamento(
             db, agendamento_id, current_user.estabelecimento_id
         )
 
-        # Verificar se está cancelado ou não compareceu
-        if agendamento.status not in [StatusAgendamento.CANCELADO, StatusAgendamento.NAO_COMPARECEU]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Apenas agendamentos cancelados ou com status 'não compareceu' podem ser excluídos permanentemente"
-            )
+        # Se agendamento está CANCELADO ou NAO_COMPARECEU: hard delete (exclusão permanente)
+        if agendamento.status in [StatusAgendamento.CANCELADO, StatusAgendamento.NAO_COMPARECEU]:
+            db.delete(agendamento)
+        else:
+            # Outros status: soft delete (apenas oculta do calendário)
+            agendamento.deleted_at = datetime.now(timezone.utc)
 
-        # Excluir fisicamente do banco
-        db.delete(agendamento)
         db.commit()

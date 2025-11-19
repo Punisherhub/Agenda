@@ -13,8 +13,7 @@ const ClientesPage: React.FC = () => {
   const [filtros, setFiltros] = useState({
     nome: '',
     telefone: '',
-    email: '',
-    ativo: true
+    email: ''
   })
 
   // Estados dos modais
@@ -139,7 +138,14 @@ const ClientesPage: React.FC = () => {
                     className="flex items-center justify-between p-3 bg-blue-50 rounded-lg"
                   >
                     <div>
-                      <p className="font-medium">{cliente.nome}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{cliente.nome}</p>
+                        {cliente.pontos > 0 && (
+                          <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded">
+                            ⭐ {cliente.pontos} pts
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600">
                         {formatTelefone(cliente.telefone)} • {cliente.email || 'Sem email'}
                       </p>
@@ -175,7 +181,7 @@ const ClientesPage: React.FC = () => {
       {/* Filtros */}
       <div className="card p-6">
         <h3 className="text-lg font-semibold mb-4">Filtros</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nome
@@ -214,20 +220,6 @@ const ClientesPage: React.FC = () => {
               onChange={(e) => setFiltros({ ...filtros, email: e.target.value })}
             />
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              className="input"
-              value={filtros.ativo.toString()}
-              onChange={(e) => setFiltros({ ...filtros, ativo: e.target.value === 'true' })}
-            >
-              <option value="true">Ativo</option>
-              <option value="false">Inativo</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -264,7 +256,7 @@ const ClientesPage: React.FC = () => {
                     Contato
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Pontos
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Cadastro
@@ -297,14 +289,8 @@ const ClientesPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          cliente.is_active
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {cliente.is_active ? 'Ativo' : 'Inativo'}
+                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-700">
+                        ⭐ {cliente.pontos || 0}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

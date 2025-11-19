@@ -8,7 +8,6 @@ import enum
 class StatusAgendamento(enum.Enum):
     AGENDADO = "AGENDADO"
     CONFIRMADO = "CONFIRMADO"
-    EM_ANDAMENTO = "EM_ANDAMENTO"
     CONCLUIDO = "CONCLUIDO"
     CANCELADO = "CANCELADO"
     NAO_COMPARECEU = "NAO_COMPARECEU"
@@ -64,6 +63,7 @@ class Agendamento(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     canceled_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)  # Soft delete (oculta do calendário)
 
     # Relationships
     cliente = relationship("Cliente", back_populates="agendamentos")

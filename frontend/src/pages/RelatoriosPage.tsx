@@ -2,14 +2,12 @@ import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { relatoriosApi } from '../services/api'
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 import { TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart } from 'lucide-react'
 import { format, subDays } from 'date-fns'
-import type { ReceitaDiaria, MaterialEstoque, ServicoLucro, MaterialConsumo } from '../types'
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658']
+import type { ReceitaDiaria, ServicoLucro, MaterialConsumo } from '../types'
 
 const RelatoriosPage: React.FC = () => {
   const [dataInicio, setDataInicio] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'))
@@ -48,16 +46,6 @@ const RelatoriosPage: React.FC = () => {
     Lucro: item.lucro
   }))
 
-  // Preparar dados de estoque para gráfico
-  const estoqueData = dashboard.estoque_materiais
-    .slice(0, 10) // Top 10 materiais
-    .map((item: MaterialEstoque) => ({
-      nome: item.nome.length > 20 ? item.nome.substring(0, 17) + '...' : item.nome,
-      valor: item.valor_total_estoque,
-      quantidade: item.quantidade_estoque,
-      unidade: item.unidade_medida
-    }))
-
   // Preparar dados de serviços por lucro
   const servicosData = dashboard.servicos_lucro
     .sort((a: ServicoLucro, b: ServicoLucro) => b.lucro_total - a.lucro_total)
@@ -67,15 +55,6 @@ const RelatoriosPage: React.FC = () => {
       lucro: item.lucro_total,
       receita: item.receita_total,
       custos: item.custo_materiais_total
-    }))
-
-  // Preparar dados de materiais mais consumidos
-  const materiaisConsumoData = dashboard.materiais_consumo
-    .sort((a: MaterialConsumo, b: MaterialConsumo) => b.custo_total - a.custo_total)
-    .slice(0, 6)
-    .map((item: MaterialConsumo) => ({
-      nome: item.material_nome,
-      value: item.custo_total
     }))
 
   return (
@@ -217,47 +196,6 @@ const RelatoriosPage: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Estoque de Materiais */}
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold mb-4">Quantidade em Estoque (Top 10)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={estoqueData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="nome" angle={-45} textAnchor="end" height={80} />
-              <YAxis />
-              <Tooltip
-                formatter={(value: number, _name: string, props: any) =>
-                  `${value.toFixed(2)} ${props.payload.unidade?.toLowerCase() || ''}`
-                }
-              />
-              <Bar dataKey="quantidade" fill="#8b5cf6" name="Quantidade" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Distribuição de Custos por Material */}
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold mb-4">Custos por Material</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={materiaisConsumoData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }: any) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {materiaisConsumoData.map((_entry: any, index: number) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value: number) => `R$ ${value.toFixed(2)}`} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
       </div>
 
       {/* Tabelas de Detalhamento */}

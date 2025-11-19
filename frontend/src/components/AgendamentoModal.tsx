@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { X, Calendar, Clock, User, Scissors, DollarSign, MessageSquare } from 'lucide-react'
+import { X, Calendar, Clock, User, Scissors, DollarSign, MessageSquare, Gift } from 'lucide-react'
 import { format, addMinutes } from 'date-fns'
-import { Agendamento, AgendamentoCreate, Servico, Cliente } from '../types'
+import { Agendamento, AgendamentoCreate, Servico, Cliente, PremioDisponivel } from '../types'
+import { fidelidadeApi } from '../services/api'
 
 interface AgendamentoModalProps {
   isOpen: boolean
@@ -34,6 +35,9 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
   // const [mostrarClienteForm, setMostrarClienteForm] = useState(false)
   const [servicoSelecionado, setServicoSelecionado] = useState<Servico | null>(null)
   const [isServicoPersonalizado, setIsServicoPersonalizado] = useState(false)
+  const [premiosDisponiveis, setPremiosDisponiveis] = useState<PremioDisponivel[]>([])
+  const [premioSelecionado, setPremioSelecionado] = useState<number | null>(null)
+  const [loadingPremios, setLoadingPremios] = useState(false)
 
   const {
     register,
@@ -45,7 +49,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
   } = useForm<AgendamentoCreate & {
     data_inicio_date: string
     data_inicio_time: string
-    duracao_personalizada?: number
+    data_fim_time: string
   }>({
     defaultValues: {
       servico_personalizado: false
@@ -55,6 +59,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
   const watchServicoId = watch('servico_id')
   const watchDataInicio = watch('data_inicio_date')
   const watchHoraInicio = watch('data_inicio_time')
+  const watchHoraFim = watch('data_fim_time')
   const watchServicoPersonalizado = watch('servico_personalizado')
   const watchValorServicoPersonalizado = watch('valor_servico_personalizado')
 
@@ -65,7 +70,6 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
         // Editando agendamento existente
         const dataInicio = new Date(agendamento.data_inicio)
         const dataFim = new Date(agendamento.data_fim)
-        const duracaoMinutos = Math.round((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60))
 
         const isPersonalizado = agendamento.servico_personalizado || false
         setIsServicoPersonalizado(isPersonalizado)
@@ -75,7 +79,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
           servico_id: agendamento.servico_id || undefined,
           data_inicio_date: format(dataInicio, 'yyyy-MM-dd'),
           data_inicio_time: format(dataInicio, 'HH:mm'),
-          duracao_personalizada: duracaoMinutos,
+          data_fim_time: format(dataFim, 'HH:mm'),
           observacoes: agendamento.observacoes || '',
           valor_desconto: agendamento.valor_desconto || 0,
           servico_personalizado: isPersonalizado,
@@ -87,9 +91,6 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
         // Novo agendamento
         const dataDefault = selectedDate || new Date()
         const dataFimDefault = selectedEndDate || addMinutes(dataDefault, 60)
-        const duracaoMinutos = selectedEndDate
-          ? Math.round((dataFimDefault.getTime() - dataDefault.getTime()) / (1000 * 60))
-          : 60
 
         setIsServicoPersonalizado(false)
         reset({
@@ -97,7 +98,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
           servico_id: undefined,
           data_inicio_date: format(dataDefault, 'yyyy-MM-dd'),
           data_inicio_time: format(dataDefault, 'HH:mm'),
-          duracao_personalizada: duracaoMinutos,
+          data_fim_time: format(dataFimDefault, 'HH:mm'),
           observacoes: '',
           valor_desconto: 0,
           servico_personalizado: false,
@@ -106,6 +107,11 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
           valor_servico_personalizado: undefined
         })
       }
+
+      // Limpar estado de prêmios
+      setPremiosDisponiveis([])
+      setPremioSelecionado(null)
+      setLoadingPremios(false)
     }
   }, [isOpen, agendamento, selectedDate, selectedEndDate, reset])
 
@@ -159,19 +165,112 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
     }
   }, [preSelectedClienteId, clientes, isOpen, setValue])
 
-  const calcularDataFim = () => {
-    if (!watchDataInicio || !watchHoraInicio) {
+  // Carregar prêmios disponíveis quando cliente é selecionado
+  const watchClienteId = watch('cliente_id')
+  useEffect(() => {
+    const loadPremios = async () => {
+      if (!watchClienteId || watchClienteId === 0) {
+        setPremiosDisponiveis([])
+        setPremioSelecionado(null)
+        return
+      }
+
+      setLoadingPremios(true)
+      try {
+        const premios = await fidelidadeApi.listarPremiosDisponiveis(watchClienteId)
+        setPremiosDisponiveis(premios)
+      } catch (error) {
+        console.error('Erro ao carregar prêmios:', error)
+        setPremiosDisponiveis([])
+      } finally {
+        setLoadingPremios(false)
+      }
+    }
+
+    loadPremios()
+  }, [watchClienteId])
+
+  // Calcular e aplicar desconto automaticamente quando prêmio é selecionado
+  useEffect(() => {
+    if (!premioSelecionado) {
+      // Se nenhum prêmio selecionado, limpar desconto
+      setValue('valor_desconto', 0)
+      return
+    }
+
+    const premio = premiosDisponiveis.find(p => p.premio.id === premioSelecionado)?.premio
+    if (!premio) {
+      setValue('valor_desconto', 0)
+      return
+    }
+
+    // Calcular valor base do serviço
+    let valorBase = 0
+    if (isServicoPersonalizado) {
+      valorBase = Number(watchValorServicoPersonalizado) || 0
+    } else if (servicoSelecionado) {
+      valorBase = servicoSelecionado.preco
+    }
+
+    if (valorBase === 0) {
+      setValue('valor_desconto', 0)
+      return
+    }
+
+    // Calcular desconto baseado no tipo de prêmio
+    let valorDesconto = 0
+
+    if (premio.tipo_premio === 'DESCONTO_PERCENTUAL' && premio.valor_desconto) {
+      // Desconto percentual: ex: 10% de R$ 100 = R$ 10
+      valorDesconto = (valorBase * Number(premio.valor_desconto)) / 100
+    } else if (premio.tipo_premio === 'DESCONTO_FIXO' && premio.valor_desconto) {
+      // Desconto fixo: ex: R$ 20 de desconto
+      valorDesconto = Number(premio.valor_desconto)
+    } else if (premio.tipo_premio === 'SERVICO_GRATIS') {
+      // Serviço grátis: desconto = valor total
+      valorDesconto = valorBase
+    }
+
+    // Aplicar desconto no formulário (não pode ser maior que o valor base)
+    const descontoFinal = Math.min(valorDesconto, valorBase)
+    setValue('valor_desconto', descontoFinal)
+
+    console.log(`[PREMIO] Desconto calculado: R$ ${Number(descontoFinal).toFixed(2)} (Tipo: ${premio.tipo_premio}, Base: R$ ${Number(valorBase).toFixed(2)})`)
+
+  }, [premioSelecionado, premiosDisponiveis, isServicoPersonalizado, watchValorServicoPersonalizado, servicoSelecionado, setValue])
+
+  // Calcular duração em minutos
+  const calcularDuracao = () => {
+    if (!watchDataInicio || !watchHoraInicio || !watchHoraFim) {
       return ''
     }
 
-    const duracaoPersonalizada = watch('duracao_personalizada')
-    if (!duracaoPersonalizada) {
+    try {
+      const [horaIni, minIni] = watchHoraInicio.split(':').map(Number)
+      const [horaFim, minFim] = watchHoraFim.split(':').map(Number)
+
+      const minutosTotaisIni = horaIni * 60 + minIni
+      const minutosTotaisFim = horaFim * 60 + minFim
+
+      const duracao = minutosTotaisFim - minutosTotaisIni
+
+      if (duracao <= 0) {
+        return 'Horário de término deve ser após o início'
+      }
+
+      const horas = Math.floor(duracao / 60)
+      const minutos = duracao % 60
+
+      if (horas > 0 && minutos > 0) {
+        return `${horas}h ${minutos}min`
+      } else if (horas > 0) {
+        return `${horas}h`
+      } else {
+        return `${minutos}min`
+      }
+    } catch {
       return ''
     }
-
-    const dataInicio = new Date(`${watchDataInicio}T${watchHoraInicio}`)
-    const dataFim = addMinutes(dataInicio, duracaoPersonalizada)
-    return format(dataFim, 'HH:mm')
   }
 
   const calcularValorTotal = () => {
@@ -189,9 +288,19 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
 
   const onSubmit = async (data: any) => {
     try {
+      // Validar que hora fim > hora início
+      const [horaIni, minIni] = data.data_inicio_time.split(':').map(Number)
+      const [horaFim, minFim] = data.data_fim_time.split(':').map(Number)
+      const minutosTotaisIni = horaIni * 60 + minIni
+      const minutosTotaisFim = horaFim * 60 + minFim
+
+      if (minutosTotaisFim <= minutosTotaisIni) {
+        alert('Horário de término deve ser após o horário de início')
+        return
+      }
+
       const dataInicio = new Date(`${data.data_inicio_date}T${data.data_inicio_time}`)
-      const duracaoMinutos = Number(data.duracao_personalizada) || 60
-      const dataFim = addMinutes(dataInicio, duracaoMinutos)
+      const dataFim = new Date(`${data.data_inicio_date}T${data.data_fim_time}`)
 
       const agendamentoData: any = {
         cliente_id: Number(data.cliente_id),
@@ -215,6 +324,24 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
 
       console.log('Dados sendo enviados:', JSON.stringify(agendamentoData, null, 2)) // Debug
       await onSave(agendamentoData)
+
+      // Se há prêmio selecionado, resgatar automaticamente
+      if (premioSelecionado && Number(data.cliente_id)) {
+        try {
+          console.log('Resgatando prêmio:', premioSelecionado)
+          await fidelidadeApi.resgatarPremio({
+            cliente_id: Number(data.cliente_id),
+            premio_id: premioSelecionado,
+            pontos_utilizados: premiosDisponiveis.find(p => p.premio.id === premioSelecionado)?.premio.pontos_necessarios || 0
+          })
+          console.log('Prêmio resgatado com sucesso!')
+        } catch (premioError: any) {
+          console.error('Erro ao resgatar prêmio:', premioError)
+          // Não bloqueia o agendamento se o resgate falhar
+          alert(`Agendamento criado com sucesso, mas houve um erro ao resgatar o prêmio: ${premioError.response?.data?.detail || 'Erro desconhecido'}`)
+        }
+      }
+
       onClose()
     } catch (error: any) {
       console.error('Erro ao salvar agendamento:', error)
@@ -435,22 +562,24 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Clock className="w-4 h-4 inline mr-1" />
-                Duração (minutos) *
+                Horário Término *
               </label>
               <input
-                type="number"
-                min="15"
-                step="15"
-                {...register('duracao_personalizada', { required: true, min: 15 })}
+                type="time"
+                {...register('data_fim_time', { required: true })}
                 className="input w-full"
-                placeholder="60"
               />
-              {errors.duracao_personalizada && (
-                <p className="text-red-500 text-sm mt-1">Mínimo 15 minutos</p>
+              {errors.data_fim_time && (
+                <p className="text-red-500 text-sm mt-1">Selecione um horário</p>
               )}
-              {calcularDataFim() && (
+              {calcularDuracao() && !calcularDuracao().includes('deve ser') && (
                 <p className="text-sm text-gray-600 mt-1">
-                  Termina às: {calcularDataFim()}
+                  Duração: {calcularDuracao()}
+                </p>
+              )}
+              {calcularDuracao().includes('deve ser') && (
+                <p className="text-sm text-red-600 mt-1">
+                  {calcularDuracao()}
                 </p>
               )}
             </div>
@@ -488,18 +617,29 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <DollarSign className="w-4 h-4 inline mr-1" />
               Desconto (R$)
+              {premioSelecionado && (
+                <span className="ml-2 text-xs text-green-600 font-medium">
+                  (Aplicado via prêmio)
+                </span>
+              )}
             </label>
             <input
               type="number"
               step="0.01"
               min="0"
               {...register('valor_desconto')}
-              className="input w-full"
+              className={`input w-full ${premioSelecionado ? 'bg-green-50 border-green-300' : ''}`}
               placeholder="0.00"
               autoComplete="off"
+              readOnly={!!premioSelecionado}
             />
+            {premioSelecionado && (
+              <p className="text-sm text-green-600 mt-1">
+                ✓ Desconto automático aplicado pelo prêmio selecionado
+              </p>
+            )}
             {(servicoSelecionado || (isServicoPersonalizado && watchValorServicoPersonalizado)) && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-900 font-medium mt-1">
                 Valor final: R$ {calcularValorTotal().toFixed(2)}
               </p>
             )}
@@ -518,6 +658,107 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
               placeholder="Observações sobre o agendamento..."
             />
           </div>
+
+          {/* Prêmios de Fidelidade */}
+          {watchClienteId && watchClienteId !== 0 && (
+            <div className="border-t pt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                <Gift className="w-4 h-4 inline mr-1" />
+                Prêmios de Fidelidade
+              </label>
+
+              {loadingPremios ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">Carregando prêmios...</span>
+                </div>
+              ) : premiosDisponiveis.length === 0 ? (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                  <p className="text-gray-600">Cliente não possui pontos suficientes para resgatar prêmios no momento.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {premiosDisponiveis.map((premioDisp) => {
+                    const premio = premioDisp.premio
+                    const podResgatar = premioDisp.pode_resgatar
+                    const pontosFaltantes = premioDisp.pontos_faltantes
+
+                    return (
+                      <div
+                        key={premio.id}
+                        className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                          premioSelecionado === premio.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : podResgatar
+                            ? 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                            : 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                        }`}
+                        onClick={() => {
+                          if (podResgatar) {
+                            setPremioSelecionado(premioSelecionado === premio.id ? null : premio.id)
+                          }
+                        }}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <h5 className="font-medium text-gray-900">{premio.nome}</h5>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                podResgatar ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {podResgatar ? 'Disponível' : `Faltam ${pontosFaltantes} pts`}
+                              </span>
+                            </div>
+                            {premio.descricao && (
+                              <p className="text-sm text-gray-600 mt-1">{premio.descricao}</p>
+                            )}
+                            <div className="flex items-center space-x-4 mt-2 text-sm">
+                              <span className="text-gray-700">
+                                <strong>{premio.pontos_necessarios}</strong> pontos
+                              </span>
+                              {premio.tipo_premio === 'DESCONTO_PERCENTUAL' && premio.valor_desconto && (
+                                <span className="text-blue-600 font-medium">
+                                  {premio.valor_desconto}% de desconto
+                                </span>
+                              )}
+                              {premio.tipo_premio === 'DESCONTO_FIXO' && premio.valor_desconto && (
+                                <span className="text-blue-600 font-medium">
+                                  R$ {Number(premio.valor_desconto).toFixed(2)} de desconto
+                                </span>
+                              )}
+                              {premio.tipo_premio === 'SERVICO_GRATIS' && (
+                                <span className="text-green-600 font-medium">
+                                  Serviço grátis
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {premioSelecionado === premio.id && podResgatar && (
+                            <div className="ml-4">
+                              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                                <span className="text-white text-xs">✓</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {premioSelecionado && (
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800 font-medium">
+                    ✓ Prêmio selecionado - Desconto aplicado automaticamente
+                  </p>
+                  <p className="text-xs text-green-700 mt-1">
+                    O prêmio será resgatado ao criar o agendamento e os pontos serão deduzidos do cliente
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Botões */}
           <div className="flex justify-end space-x-3 pt-4 border-t">

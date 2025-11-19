@@ -48,6 +48,7 @@ class ClienteResponse(BaseModel):
     cep: Optional[str] = None
     observacoes: Optional[str] = None
     preferencias: Optional[str] = None
+    pontos: int = 0
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None

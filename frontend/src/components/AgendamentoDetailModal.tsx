@@ -39,7 +39,7 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
   const { data: consumos, refetch: refetchConsumos } = useQuery({
     queryKey: ['consumos-materiais', agendamento?.id],
     queryFn: () => agendamento ? materiaisApi.listarConsumos(agendamento.id) : Promise.resolve([]),
-    enabled: isOpen && !!agendamento && ['EM_ANDAMENTO', 'CONCLUIDO'].includes(agendamento.status)
+    enabled: isOpen && !!agendamento && agendamento.status === 'CONCLUIDO'
   })
 
   if (!isOpen || !agendamento) return null
@@ -53,8 +53,6 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
         return 'bg-blue-100 text-blue-800 border-blue-200'
       case 'CONFIRMADO':
         return 'bg-green-100 text-green-800 border-green-200'
-      case 'EM_ANDAMENTO':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'CONCLUIDO':
         return 'bg-emerald-100 text-emerald-800 border-emerald-200'
       case 'CANCELADO':
@@ -72,8 +70,6 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
         return 'Agendado'
       case 'CONFIRMADO':
         return 'Confirmado'
-      case 'EM_ANDAMENTO':
-        return 'Em Andamento'
       case 'CONCLUIDO':
         return 'Concluído'
       case 'CANCELADO':
@@ -127,7 +123,13 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
   }
 
   const handleDelete = async () => {
-    if (confirm('⚠️ ATENÇÃO: Esta ação irá EXCLUIR PERMANENTEMENTE este agendamento.\nEsta ação NÃO PODE ser desfeita!\n\nDeseja continuar?')) {
+    const isCanceladoOuNaoCompareceu = ['CANCELADO', 'NAO_COMPARECEU'].includes(agendamento.status)
+
+    const mensagem = isCanceladoOuNaoCompareceu
+      ? '⚠️ Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nEsta ação NÃO PODE ser desfeita!'
+      : '⚠️ ATENÇÃO: Este agendamento NÃO está cancelado!\n\nVocê está prestes a EXCLUIR PERMANENTEMENTE um agendamento ativo.\nEsta ação NÃO PODE ser desfeita!\n\nRecomendamos CANCELAR antes de excluir.\n\nDeseja continuar mesmo assim?'
+
+    if (confirm(mensagem)) {
       setUpdating(true)
       try {
         if (onDelete) {
@@ -147,19 +149,26 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
     }
   }
 
-  const handleIniciarAtendimento = () => {
-    // Abrir modal de consumo de materiais
+  const handleConcluirComConsumo = () => {
+    // Abrir modal de consumo de materiais antes de concluir
     setConsumoModalOpen(true)
+  }
+
+  const handleConcluirSemConsumo = async () => {
+    // Concluir sem registrar consumo de materiais
+    await handleUpdateStatus('CONCLUIDO')
   }
 
   const handleSalvarConsumo = async (consumosData: ConsumoMaterialCreate[]) => {
     setUpdating(true)
     try {
       // Registrar consumo de materiais
-      await materiaisApi.registrarConsumo(agendamento.id, consumosData)
+      if (consumosData.length > 0) {
+        await materiaisApi.registrarConsumo(agendamento.id, consumosData)
+      }
 
-      // Atualizar status para EM_ANDAMENTO
-      await onUpdateStatus(agendamento.id, 'EM_ANDAMENTO')
+      // Atualizar status para CONCLUIDO
+      await onUpdateStatus(agendamento.id, 'CONCLUIDO')
 
       // Recarregar consumos
       await refetchConsumos()
@@ -176,7 +185,7 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
 
   const canEdit = !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status)
   const canCancel = !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status)
-  const canDelete = ['CANCELADO', 'NAO_COMPARECEU'].includes(agendamento.status) && onDelete
+  const canDelete = onDelete !== undefined // Sempre pode deletar se a função estiver disponível
   const canReativar = agendamento.status === 'NAO_COMPARECEU'
 
   return (
@@ -220,10 +229,21 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
                 <button
                   onClick={handleCancel}
                   disabled={updating}
+                  className="flex items-center px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Cancelar
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  onClick={handleDelete}
+                  disabled={updating}
                   className="flex items-center px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                  title="Excluir agendamento permanentemente"
                 >
                   <Trash2 className="w-4 h-4 mr-1" />
-                  Cancelar
+                  Excluir
                 </button>
               )}
             </div>
@@ -362,7 +382,7 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
           )}
 
           {/* Materiais Consumidos */}
-          {['EM_ANDAMENTO', 'CONCLUIDO'].includes(agendamento.status) && consumos && consumos.length > 0 && (
+          {agendamento.status === 'CONCLUIDO' && consumos && consumos.length > 0 && (
             <div className="bg-orange-50 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-3 flex items-center">
                 <Package className="w-5 h-5 mr-2" />
@@ -404,42 +424,34 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-3">Ações Disponíveis</h3>
               <div className="flex flex-wrap gap-2">
-                {agendamento.status === 'AGENDADO' && (
-                  <button
-                    onClick={() => handleUpdateStatus('CONFIRMADO')}
-                    disabled={updating}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors text-sm"
-                  >
-                    {updating ? 'Atualizando...' : 'Confirmar'}
-                  </button>
-                )}
-
-                {agendamento.status === 'CONFIRMADO' && (
-                  <button
-                    onClick={handleIniciarAtendimento}
-                    disabled={updating}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm"
-                  >
-                    {updating ? 'Atualizando...' : 'Iniciar Atendimento'}
-                  </button>
-                )}
-
-                {agendamento.status === 'EM_ANDAMENTO' && (
-                  <button
-                    onClick={() => handleUpdateStatus('CONCLUIDO')}
-                    disabled={updating}
-                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm"
-                  >
-                    {updating ? 'Atualizando...' : 'Finalizar Atendimento'}
-                  </button>
+                {['AGENDADO', 'CONFIRMADO'].includes(agendamento.status) && (
+                  <>
+                    <button
+                      onClick={handleConcluirComConsumo}
+                      disabled={updating}
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm inline-flex items-center justify-center"
+                    >
+                      {updating && <span className="inline-block animate-spin mr-2">⟳</span>}
+                      {updating ? 'Atualizando...' : 'Concluir com Materiais'}
+                    </button>
+                    <button
+                      onClick={handleConcluirSemConsumo}
+                      disabled={updating}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm inline-flex items-center justify-center"
+                    >
+                      {updating && <span className="inline-block animate-spin mr-2">⟳</span>}
+                      {updating ? 'Atualizando...' : 'Concluir sem Materiais'}
+                    </button>
+                  </>
                 )}
 
                 {['AGENDADO', 'CONFIRMADO'].includes(agendamento.status) && (
                   <button
                     onClick={() => handleUpdateStatus('NAO_COMPARECEU')}
                     disabled={updating}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors text-sm"
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors text-sm inline-flex items-center justify-center"
                   >
+                    {updating && <span className="inline-block animate-spin mr-2">⟳</span>}
                     {updating ? 'Atualizando...' : 'Não Compareceu'}
                   </button>
                 )}
@@ -448,8 +460,9 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
                   <button
                     onClick={() => handleUpdateStatus('CONFIRMADO')}
                     disabled={updating}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors text-sm"
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors text-sm inline-flex items-center justify-center"
                   >
+                    {updating && <span className="inline-block animate-spin mr-2">⟳</span>}
                     {updating ? 'Atualizando...' : 'Reagendar / Confirmar'}
                   </button>
                 )}
@@ -485,28 +498,6 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
             </div>
           )}
 
-          {/* Excluir agendamento cancelado ou não compareceu */}
-          {canDelete && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h3 className="font-medium text-red-900 mb-2 flex items-center">
-                <Trash2 className="w-5 h-5 mr-2" />
-                Excluir Agendamento
-              </h3>
-              <p className="text-sm text-red-700 mb-3">
-                {agendamento.status === 'CANCELADO'
-                  ? 'Este agendamento está cancelado. Você pode excluí-lo permanentemente do sistema para liberar espaço.'
-                  : 'Cliente não compareceu. Você pode excluir este agendamento permanentemente para liberar espaço na agenda.'}
-              </p>
-              <button
-                onClick={handleDelete}
-                disabled={updating}
-                className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors text-sm font-medium flex items-center justify-center"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                {updating ? 'Excluindo...' : 'Excluir Permanentemente'}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 

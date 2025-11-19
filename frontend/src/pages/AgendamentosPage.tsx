@@ -7,6 +7,7 @@ import Calendar from '../components/Calendar'
 import AgendamentoModal from '../components/AgendamentoModal'
 import AgendamentoDetailModal from '../components/AgendamentoDetailModal'
 import { Calendar as CalendarIcon, List } from 'lucide-react'
+import { toBrazilISO } from '../utils/timezone'
 import { Agendamento, AgendamentoCreate } from '../types'
 
 const AgendamentosPage: React.FC = () => {
@@ -28,6 +29,9 @@ const AgendamentosPage: React.FC = () => {
     cliente_nome: '',
     servico_nome: ''
   })
+
+  // Estado para rastrear agendamentos sendo processados
+  const [processingIds, setProcessingIds] = useState<Set<number>>(new Set())
 
   const queryClient = useQueryClient()
 
@@ -113,19 +117,38 @@ const AgendamentosPage: React.FC = () => {
   })
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      agendamentosApi.updateStatus(id, status),
+    mutationFn: ({ id, status }: { id: number; status: string }) => {
+      setProcessingIds(prev => new Set(prev).add(id))
+      return agendamentosApi.updateStatus(id, status)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-relatorios'] })
+    },
+    onSettled: (_data, _error, variables) => {
+      setProcessingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(variables.id)
+        return newSet
+      })
     }
   })
 
   const cancelMutation = useMutation({
-    mutationFn: agendamentosApi.cancel,
+    mutationFn: (id: number) => {
+      setProcessingIds(prev => new Set(prev).add(id))
+      return agendamentosApi.cancel(id)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-relatorios'] })
+    },
+    onSettled: (_data, _error, id) => {
+      setProcessingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(id)
+        return newSet
+      })
     }
   })
 
@@ -195,7 +218,7 @@ const AgendamentosPage: React.FC = () => {
           ...old,
           agendamentos: old.agendamentos.map((a: Agendamento) =>
             a.id === agendamento.id
-              ? { ...a, data_inicio: data.start.toISOString(), data_fim: data.end.toISOString() }
+              ? { ...a, data_inicio: toBrazilISO(data.start), data_fim: toBrazilISO(data.end) }
               : a
           )
         }
@@ -205,8 +228,8 @@ const AgendamentosPage: React.FC = () => {
       const agendamentoData = {
         cliente_id: agendamento.cliente_id,
         servico_id: agendamento.servico_id,
-        data_inicio: data.start.toISOString(),
-        data_fim: data.end.toISOString(),
+        data_inicio: toBrazilISO(data.start),
+        data_fim: toBrazilISO(data.end),
         observacoes: agendamento.observacoes,
         valor_desconto: agendamento.valor_desconto
       }
@@ -250,7 +273,7 @@ const AgendamentosPage: React.FC = () => {
           ...old,
           agendamentos: old.agendamentos.map((a: Agendamento) =>
             a.id === agendamento.id
-              ? { ...a, data_inicio: data.start.toISOString(), data_fim: novaDataFim.toISOString() }
+              ? { ...a, data_inicio: toBrazilISO(data.start), data_fim: toBrazilISO(novaDataFim) }
               : a
           )
         }
@@ -260,8 +283,8 @@ const AgendamentosPage: React.FC = () => {
       const agendamentoData = {
         cliente_id: agendamento.cliente_id,
         servico_id: agendamento.servico_id,
-        data_inicio: data.start.toISOString(),
-        data_fim: novaDataFim.toISOString(),
+        data_inicio: toBrazilISO(data.start),
+        data_fim: toBrazilISO(novaDataFim),
         observacoes: agendamento.observacoes,
         valor_desconto: agendamento.valor_desconto
       }
@@ -283,21 +306,41 @@ const AgendamentosPage: React.FC = () => {
   }
 
   const handleUpdateStatusOld = async (id: number, novoStatus: string) => {
+    // Adicionar ID ao set de processamento
+    setProcessingIds(prev => new Set(prev).add(id))
+
     try {
       await agendamentosApi.updateStatus(id, novoStatus)
       refetch()
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
+    } finally {
+      // Remover ID do set de processamento
+      setProcessingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(id)
+        return newSet
+      })
     }
   }
 
   const handleCancelOld = async (id: number) => {
     if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
+      // Adicionar ID ao set de processamento
+      setProcessingIds(prev => new Set(prev).add(id))
+
       try {
         await agendamentosApi.cancel(id)
         refetch()
       } catch (error) {
         console.error('Erro ao cancelar agendamento:', error)
+      } finally {
+        // Remover ID do set de processamento
+        setProcessingIds(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(id)
+          return newSet
+        })
       }
     }
   }
@@ -389,7 +432,6 @@ const AgendamentosPage: React.FC = () => {
               <option value="">Todos</option>
               <option value="AGENDADO">Agendado</option>
               <option value="CONFIRMADO">Confirmado</option>
-              <option value="EM_ANDAMENTO">Em Andamento</option>
               <option value="CONCLUIDO">Concluído</option>
               <option value="CANCELADO">Cancelado</option>
               <option value="NAO_COMPARECEU">Não Compareceu</option>
@@ -436,6 +478,7 @@ const AgendamentosPage: React.FC = () => {
           onEventResize={handleEventResize}
           onEventDrop={handleEventDrop}
           loading={isLoading}
+          processingIds={processingIds}
         />
       ) : (
         /* Lista de agendamentos */
@@ -518,8 +561,6 @@ const AgendamentosPage: React.FC = () => {
                             ? 'bg-blue-100 text-blue-800'
                             : agendamento.status === 'CONFIRMADO'
                             ? 'bg-green-100 text-green-800'
-                            : agendamento.status === 'EM_ANDAMENTO'
-                            ? 'bg-yellow-100 text-yellow-800'
                             : agendamento.status === 'CONCLUIDO'
                             ? 'bg-emerald-100 text-emerald-800 font-bold'
                             : agendamento.status === 'CANCELADO'
@@ -538,62 +579,36 @@ const AgendamentosPage: React.FC = () => {
                       R$ {Number(agendamento.valor_final || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-1">
-                      {agendamento.status === 'AGENDADO' && (
-                        <>
-                          <button
-                            onClick={() => handleUpdateStatusOld(agendamento.id, 'CONFIRMADO')}
-                            className="btn-success px-2 py-1 text-xs"
-                          >
-                            Confirmar
-                          </button>
-                          <button
-                            onClick={() => handleUpdateStatusOld(agendamento.id, 'NAO_COMPARECEU')}
-                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 text-xs rounded"
-                          >
-                            Não Compareceu
-                          </button>
-                          <button
-                            onClick={() => handleCancelOld(agendamento.id)}
-                            className="btn-danger px-2 py-1 text-xs"
-                          >
-                            Cancelar
-                          </button>
-                        </>
-                      )}
-                      {agendamento.status === 'CONFIRMADO' && (
-                        <>
-                          <button
-                            onClick={() => handleUpdateStatusOld(agendamento.id, 'EM_ANDAMENTO')}
-                            className="btn-primary px-2 py-1 text-xs"
-                          >
-                            Iniciar
-                          </button>
-                          <button
-                            onClick={() => handleUpdateStatusOld(agendamento.id, 'NAO_COMPARECEU')}
-                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 text-xs rounded"
-                          >
-                            Não Compareceu
-                          </button>
-                          <button
-                            onClick={() => handleCancelOld(agendamento.id)}
-                            className="btn-danger px-2 py-1 text-xs"
-                          >
-                            Cancelar
-                          </button>
-                        </>
-                      )}
-                      {agendamento.status === 'EM_ANDAMENTO' && (
+                      {['AGENDADO', 'CONFIRMADO'].includes(agendamento.status) && (
                         <>
                           <button
                             onClick={() => handleUpdateStatusOld(agendamento.id, 'CONCLUIDO')}
-                            className="btn-success px-2 py-1 text-xs"
+                            disabled={processingIds.has(agendamento.id)}
+                            className="btn-success px-2 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
                           >
-                            Finalizar
+                            {processingIds.has(agendamento.id) && (
+                              <span className="inline-block animate-spin mr-1">⟳</span>
+                            )}
+                            Concluir
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatusOld(agendamento.id, 'NAO_COMPARECEU')}
+                            disabled={processingIds.has(agendamento.id)}
+                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 text-xs rounded disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
+                          >
+                            {processingIds.has(agendamento.id) && (
+                              <span className="inline-block animate-spin mr-1">⟳</span>
+                            )}
+                            Não Compareceu
                           </button>
                           <button
                             onClick={() => handleCancelOld(agendamento.id)}
-                            className="btn-danger px-2 py-1 text-xs"
+                            disabled={processingIds.has(agendamento.id)}
+                            className="btn-danger px-2 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
                           >
+                            {processingIds.has(agendamento.id) && (
+                              <span className="inline-block animate-spin mr-1">⟳</span>
+                            )}
                             Cancelar
                           </button>
                         </>
@@ -602,17 +617,30 @@ const AgendamentosPage: React.FC = () => {
                         <>
                           <button
                             onClick={() => handleUpdateStatusOld(agendamento.id, 'CONFIRMADO')}
-                            className="btn-success px-2 py-1 text-xs"
+                            disabled={processingIds.has(agendamento.id)}
+                            className="btn-success px-2 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
                           >
+                            {processingIds.has(agendamento.id) && (
+                              <span className="inline-block animate-spin mr-1">⟳</span>
+                            )}
                             Reagendar
                           </button>
                           <button
                             onClick={() => handleCancelOld(agendamento.id)}
-                            className="btn-danger px-2 py-1 text-xs"
+                            disabled={processingIds.has(agendamento.id)}
+                            className="btn-danger px-2 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
                           >
+                            {processingIds.has(agendamento.id) && (
+                              <span className="inline-block animate-spin mr-1">⟳</span>
+                            )}
                             Cancelar
                           </button>
                         </>
+                      )}
+                      {['CONCLUIDO', 'CANCELADO'].includes(agendamento.status) && (
+                        <span className="text-gray-500 text-xs italic">
+                          Sem ações disponíveis
+                        </span>
                       )}
                     </td>
                   </tr>

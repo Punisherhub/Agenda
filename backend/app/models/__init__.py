@@ -6,6 +6,9 @@ from .cliente import Cliente
 from .agendamento import Agendamento, StatusAgendamento, FormaPagamento
 from .material import Material, UnidadeMedida
 from .consumo_material import ConsumoMaterial
+from .configuracao_fidelidade import ConfiguracaoFidelidade
+from .premio import Premio
+from .resgate_premio import ResgatePremio
 
 __all__ = [
     "User",
@@ -19,5 +22,8 @@ __all__ = [
     "FormaPagamento",
     "Material",
     "UnidadeMedida",
-    "ConsumoMaterial"
+    "ConsumoMaterial",
+    "ConfiguracaoFidelidade",
+    "Premio",
+    "ResgatePremio"
 ]

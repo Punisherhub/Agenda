@@ -24,6 +24,7 @@ export interface Cliente {
   estado: string | null
   cep: string | null
   observacoes: string | null
+  pontos: number
   is_active: boolean
   created_at: string
   updated_at: string
@@ -50,7 +51,7 @@ export interface Agendamento {
   data_agendamento: string
   data_inicio: string
   data_fim: string
-  status: 'AGENDADO' | 'CONFIRMADO' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'CANCELADO' | 'NAO_COMPARECEU'
+  status: 'AGENDADO' | 'CONFIRMADO' | 'CONCLUIDO' | 'CANCELADO' | 'NAO_COMPARECEU'
   observacoes: string | null
   observacoes_internas: string | null
   valor_servico: number
@@ -67,6 +68,7 @@ export interface Agendamento {
   updated_at: string
   canceled_at: string | null
   completed_at: string | null
+  deleted_at: string | null
 
   // Campos de serviço personalizado
   servico_personalizado?: boolean
@@ -245,4 +247,88 @@ export interface DashboardRelatorios {
   servicos_lucro: ServicoLucro[]
   materiais_consumo: MaterialConsumo[]
   receita_diaria: ReceitaDiaria[]
+}
+
+// ==================== Sistema de Fidelidade ====================
+
+export interface ConfiguracaoFidelidade {
+  id: number
+  reais_por_ponto: number
+  ativo: boolean
+  estabelecimento_id: number
+  created_at: string
+  updated_at: string | null
+}
+
+export interface ConfiguracaoFidelidadeCreate {
+  reais_por_ponto: number
+  ativo?: boolean
+}
+
+export interface ConfiguracaoFidelidadeUpdate {
+  reais_por_ponto?: number
+  ativo?: boolean
+}
+
+export type TipoPremio = 'DESCONTO_PERCENTUAL' | 'DESCONTO_FIXO' | 'SERVICO_GRATIS' | 'PRODUTO'
+
+export interface Premio {
+  id: number
+  nome: string
+  descricao: string | null
+  pontos_necessarios: number
+  tipo_premio: TipoPremio
+  valor_desconto: number | null
+  servico_id: number | null
+  ativo: boolean
+  estabelecimento_id: number
+  created_at: string
+  updated_at: string | null
+}
+
+export interface PremioCreate {
+  nome: string
+  descricao?: string
+  pontos_necessarios: number
+  tipo_premio: TipoPremio
+  valor_desconto?: number
+  servico_id?: number
+  ativo?: boolean
+}
+
+export interface PremioUpdate {
+  nome?: string
+  descricao?: string
+  pontos_necessarios?: number
+  tipo_premio?: TipoPremio
+  valor_desconto?: number
+  servico_id?: number
+  ativo?: boolean
+}
+
+export type StatusResgate = 'DISPONIVEL' | 'USADO' | 'EXPIRADO'
+
+export interface ResgatePremio {
+  id: number
+  cliente_id: number
+  premio_id: number
+  pontos_utilizados: number
+  data_resgate: string
+  status: StatusResgate
+  usado_em_agendamento_id: number | null
+  data_expiracao: string | null
+  created_at: string
+  updated_at: string | null
+}
+
+export interface ResgatePremioCreate {
+  cliente_id: number
+  premio_id: number
+  pontos_utilizados: number
+}
+
+export interface PremioDisponivel {
+  premio: Premio
+  pode_resgatar: boolean
+  pontos_faltantes: number
 }
