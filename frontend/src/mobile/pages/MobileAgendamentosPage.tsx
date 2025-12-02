@@ -14,7 +14,6 @@ import {
   WrenchScrewdriverIcon,
   CalendarIcon,
   CurrencyDollarIcon,
-  PlayIcon,
   PhoneIcon,
   CheckIcon
 } from '@heroicons/react/24/outline'
@@ -82,7 +81,7 @@ const MobileAgendamentosPage: React.FC = () => {
   // Buscar serviços
   const { data: servicosData } = useQuery({
     queryKey: ['servicos'],
-    queryFn: servicosApi.list
+    queryFn: () => servicosApi.list()
   })
 
   // Buscar clientes
@@ -565,7 +564,7 @@ const MobileAgendamentosPage: React.FC = () => {
           setIsDetailModalOpen(false)
           setSelectedAgendamento(null)
         }}
-        agendamento={selectedAgendamento}
+        agendamento={selectedAgendamento as Agendamento | null}
         servicos={servicos}
         clientes={clientes}
         onEdit={handleEdit}

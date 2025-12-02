@@ -4,7 +4,7 @@ import { User } from '../../types'
 
 interface MobileRoleProtectedRouteProps {
   children: React.ReactNode
-  allowedRoles: Array<'admin' | 'manager' | 'vendedor' | 'atendente'>
+  allowedRoles: Array<'admin' | 'manager' | 'vendedor' | 'atendente' | 'suporte'>
 }
 
 const MobileRoleProtectedRoute: React.FC<MobileRoleProtectedRouteProps> = ({

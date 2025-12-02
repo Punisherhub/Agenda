@@ -18,7 +18,8 @@
       "Bash(taskkill:*)",
       "Bash(powershell -Command \"Stop-Process -Id 12836 -Force\")",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

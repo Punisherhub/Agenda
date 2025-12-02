@@ -170,7 +170,9 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
       }
 
       // Atualizar status para CONCLUIDO
-      await onUpdateStatus(agendamento.id, 'CONCLUIDO')
+      if (onUpdateStatus) {
+        await onUpdateStatus(agendamento.id, 'CONCLUIDO')
+      }
 
       // Recarregar consumos
       await refetchConsumos()

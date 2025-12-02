@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import MobileModal from './MobileModal'
+import { Agendamento, Cliente, Servico } from '../../types'
 import {
   UserIcon,
   WrenchScrewdriverIcon,
@@ -8,35 +9,6 @@ import {
   CurrencyDollarIcon,
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
-
-interface Cliente {
-  id: number
-  nome: string
-  telefone: string
-  email?: string
-}
-
-interface Servico {
-  id: number
-  nome: string
-  preco: number
-  duracao_minutos: number
-  categoria?: string
-  descricao?: string
-}
-
-interface Agendamento {
-  id: number
-  cliente_id: number
-  servico_id: number | null
-  data_inicio: string
-  data_fim: string
-  valor_servico: number
-  valor_desconto: number
-  observacoes?: string
-  cliente?: Cliente
-  servico?: Servico
-}
 
 interface MobileAgendamentoModalProps {
   isOpen: boolean
@@ -262,7 +234,7 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
 
     // Construir data de início e fim SEM timezone (naive datetime)
     // O backend vai assumir que é hora do Brasil e adicionar o timezone correto
-    const [ano, mes, dia] = dataInicio.split('-').map(Number)
+    // Removido parsing de data pois não está sendo usado
 
     // Parse hora início e fim
     const [horaIniNum, minIniNum] = horaInicio.split(':').map(Number)
