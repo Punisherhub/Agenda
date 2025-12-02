@@ -244,9 +244,53 @@ Arquivos de configuração não estão no root correto.
    - Backend: `requirements.txt` em `backend/`
    - Frontend: `package.json` em `frontend/`
 
-3. **Adicionar arquivo nixpacks.toml** (já criado):
-   - Backend: `backend/nixpacks.toml`
-   - Frontend: `frontend/nixpacks.toml`
+3. **Verificar se Root Directory está correto**:
+   - No Railway Dashboard → Settings → Root Directory
+   - Backend deve estar em: `backend`
+   - Frontend deve estar em: `frontend`
+
+---
+
+## ❌ Problema: Endpoint /health retorna 404 após deploy
+
+### Sintoma
+```
+GET https://seu-backend.up.railway.app/health
+404 Not Found
+```
+
+### Causa
+**Root Directory não configurado no Railway** - Aplicação está procurando `main.py` no lugar errado.
+
+### ✅ Solução
+1. **No Railway Dashboard do service Backend:**
+   - Vá em **Settings**
+   - Role até **Root Directory**
+   - Configure como: `backend`
+   - Salve (Railway faz redeploy automático)
+
+2. **Verificar se aplicação está rodando:**
+   - Vá em **Deployments** → Último deployment
+   - Clique em **View Logs**
+   - Procure por: `Application startup complete`
+   - Deve mostrar: `Uvicorn running on http://0.0.0.0:XXXX`
+
+3. **Testar endpoints:**
+   ```bash
+   # Endpoint raiz
+   curl https://seu-backend.up.railway.app/
+   # Deve retornar: {"message": "Agenda OnSell API", "version": "1.0.0"}
+
+   # Health check
+   curl https://seu-backend.up.railway.app/health
+   # Deve retornar: {"status": "healthy"}
+   ```
+
+### Verificação Rápida
+Se após configurar Root Directory ainda não funcionar:
+1. Verificar se `requirements.txt` está em `backend/requirements.txt`
+2. Verificar se `main.py` está em `backend/main.py`
+3. Ver logs de build para erros durante instalação de dependências
 
 ---
 

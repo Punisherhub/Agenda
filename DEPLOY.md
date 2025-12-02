@@ -53,11 +53,20 @@ CORS_ORIGINS=https://seu-frontend.up.railway.app
 - Substitua `SECRET_KEY` por uma chave aleatória e segura
 - Substitua `CORS_ORIGINS` pela URL real do frontend após deploy
 
-### 1.3. Configurar Root Directory
+### 1.3. ⚠️ CRÍTICO: Configurar Root Directory
+
+**IMPORTANTE**: Sem isso, o deploy falhará com erro 404!
 
 1. No Railway, vá em **Settings**
-2. Em **"Root Directory"**, defina: `backend`
-3. Isso garante que o Railway vai rodar o projeto a partir da pasta backend
+2. Role até **"Root Directory"**
+3. Digite: `backend` (sem barra no final)
+4. Clique em **Save**
+5. Railway fará redeploy automático
+
+**Por que isso é necessário?**
+- Seu repositório tem estrutura de monorepo: `/backend` e `/frontend`
+- Railway precisa saber onde está o código a ser executado
+- Sem isso, procurará `main.py` na raiz (não existe) → 404
 
 ### 1.4. Deploy Automático
 
