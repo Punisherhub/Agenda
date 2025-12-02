@@ -4,23 +4,36 @@ from typing import Optional
 from jose import JWTError, jwt
 from app.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Configure bcrypt to handle passwords properly
+# truncate_error=True forces passlib to handle 72-byte limit internally
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__rounds=12,
+)
+
+
+def _truncate_password(password: str) -> bytes:
+    """Truncate password to 72 bytes for bcrypt compatibility."""
+    pwd_bytes = password.encode('utf-8')
+    if len(pwd_bytes) > 72:
+        # Truncate to 72 bytes
+        pwd_bytes = pwd_bytes[:72]
+    return pwd_bytes
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
-    # Bcrypt has a 72 byte limit, truncate if necessary
-    if isinstance(plain_password, str):
-        plain_password = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-    return pwd_context.verify(plain_password, hashed_password)
+    # Convert password to bytes and truncate to 72 bytes
+    pwd_bytes = _truncate_password(plain_password)
+    return pwd_context.verify(pwd_bytes, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
     """Generate password hash."""
-    # Bcrypt has a 72 byte limit, truncate if necessary
-    if isinstance(password, str):
-        password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-    return pwd_context.hash(password)
+    # Convert password to bytes and truncate to 72 bytes
+    pwd_bytes = _truncate_password(password)
+    return pwd_context.hash(pwd_bytes)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
