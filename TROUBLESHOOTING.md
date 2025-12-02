@@ -437,6 +437,41 @@ Erro no código, variável faltando, ou comando de start incorreto.
 
 ---
 
+## ❌ Problema: ValueError - password cannot be longer than 72 bytes (bcrypt)
+
+### Sintoma
+```
+ValueError: password cannot be longer than 72 bytes, truncate manually if necessary
+File "/app/app/utils/security.py", line 12, in verify_password
+```
+
+### Causa
+**Bcrypt tem limite de 72 bytes**. Senhas longas ou com caracteres especiais podem exceder esse limite quando convertidas para bytes.
+
+### ✅ Solução Aplicada
+Truncar senhas para 72 bytes antes de hash/verificação em `security.py`:
+
+```python
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    # Bcrypt has a 72 byte limit, truncate if necessary
+    if isinstance(plain_password, str):
+        plain_password = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    # Bcrypt has a 72 byte limit, truncate if necessary
+    if isinstance(password, str):
+        password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.hash(password)
+```
+
+### Prevenção
+- **Sempre truncar senhas para 72 bytes** ao usar bcrypt
+- Ou usar outro algoritmo como Argon2 (sem limite de tamanho)
+- Considerar usar hash da senha (SHA256) antes do bcrypt para senhas muito longas
+
+---
+
 ## ❌ Problema: Login não funciona
 
 ### Sintoma
