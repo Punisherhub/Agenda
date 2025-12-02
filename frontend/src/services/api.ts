@@ -22,7 +22,8 @@ import type {
   PremioDisponivel
 } from '../types'
 
-// Use /api em dev para usar o proxy do Vite e evitar CORS
+// Em produção, usa VITE_API_URL configurado no Railway
+// Em desenvolvimento, usa proxy /api
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api'
 
 const api = axios.create({

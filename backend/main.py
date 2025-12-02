@@ -27,10 +27,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": exc.errors()}
     )
 
-# Configuração CORS - Permite acesso de dispositivos da rede local
+# Configuração CORS
+# Em produção, configure CORS_ORIGINS com a URL do frontend
+origins = settings.cors_origins.split(",") if settings.cors_origins != "*" else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permite todas as origens (desenvolvimento)
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
