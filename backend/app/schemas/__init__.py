@@ -19,7 +19,7 @@ __all__ = [
     # Estabelecimento
     "EstabelecimentoCreate", "EstabelecimentoUpdate", "EstabelecimentoResponse", "EstabelecimentoList",
 
-    # Serviço
+    # Servico
     "ServicoCreate", "ServicoUpdate", "ServicoResponse", "ServicoList", "ServicoPublic",
 
     # Cliente

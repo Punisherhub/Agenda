@@ -1,0 +1,344 @@
+# 🔧 Troubleshooting - Guia de Solução de Problemas
+
+## ❌ Problema: "stream did not contain valid UTF-8" durante build
+
+### Sintoma
+```
+Nixpacks build failed
+Error: Error reading app/schemas/__init__.py
+Caused by: stream did not contain valid UTF-8
+```
+
+### Causa
+Caracteres especiais mal codificados em arquivos Python (acentuação).
+
+### ✅ Solução Aplicada
+1. Corrigido encoding em `backend/app/schemas/__init__.py`
+2. Removido caractere especial "ç" do comentário (linha 22)
+3. Adicionado `backend/.python-version` com versão correta
+4. Adicionado `backend/nixpacks.toml` para configuração explícita
+5. Adicionado `pytz` ao `requirements.txt`
+
+### Prevenção
+- **Sempre use comentários sem acentuação em arquivos Python**
+- Use apenas ASCII em comentários quando possível
+- Se precisar usar acentos, garanta que o arquivo está em UTF-8
+
+---
+
+## ❌ Problema: CORS Error no Frontend
+
+### Sintoma
+```
+Access to XMLHttpRequest at 'https://backend.app' from origin 'https://frontend.app'
+has been blocked by CORS policy
+```
+
+### Causa
+Backend não tem o domínio do frontend na lista de origens permitidas.
+
+### ✅ Solução
+1. No Railway, acesse o service **Backend**
+2. Vá em **Variables**
+3. Edite `CORS_ORIGINS`:
+   ```
+   CORS_ORIGINS=https://seu-frontend.up.railway.app
+   ```
+4. Railway faz redeploy automático
+
+### Múltiplas Origens
+Para permitir múltiplas origens (dev + prod):
+```env
+CORS_ORIGINS=https://frontend-prod.up.railway.app,http://localhost:3000
+```
+
+---
+
+## ❌ Problema: Backend não conecta ao banco
+
+### Sintoma
+```
+sqlalchemy.exc.OperationalError: could not connect to server
+```
+
+### Causa
+`DATABASE_URL` incorreta ou banco inacessível.
+
+### ✅ Solução
+1. Verificar se `DATABASE_URL` está correta:
+   ```env
+   DATABASE_URL=postgresql://user:password@host:5432/database?sslmode=require
+   ```
+2. Testar conexão manualmente:
+   ```bash
+   psql "postgresql://sasconv_user:password@dpg-XXX.render.com:5432/agenda_db?sslmode=require"
+   ```
+3. Verificar se o banco está ativo no Render.com
+4. Verificar se `?sslmode=require` está presente
+
+---
+
+## ❌ Problema: Frontend não encontra API
+
+### Sintoma
+```
+GET /api/auth/me 404 (Not Found)
+```
+
+### Causa
+`VITE_API_URL` não configurado ou incorreto.
+
+### ✅ Solução
+1. No Railway, acesse o service **Frontend**
+2. Vá em **Variables**
+3. Adicione/Edite:
+   ```env
+   VITE_API_URL=https://seu-backend.up.railway.app
+   ```
+4. **IMPORTANTE**: Não coloque barra `/` no final da URL!
+
+### Verificação
+Teste diretamente no navegador:
+```
+https://seu-backend.up.railway.app/health
+```
+Deve retornar: `{"status": "healthy"}`
+
+---
+
+## ❌ Problema: Build do Frontend falha
+
+### Sintoma
+```
+npm ERR! code ELIFECYCLE
+npm ERR! errno 2
+```
+
+### Causa
+Erros de TypeScript ou dependências faltando.
+
+### ✅ Solução
+1. **Testar build localmente:**
+   ```bash
+   cd frontend
+   npm run build
+   ```
+
+2. **Se falhar localmente:**
+   ```bash
+   npm run type-check
+   ```
+   Corrigir erros de TypeScript
+
+3. **Limpar cache e reinstalar:**
+   ```bash
+   rm -rf node_modules package-lock.json
+   npm install
+   npm run build
+   ```
+
+4. **No Railway:**
+   - Verificar logs de build
+   - Garantir que todas as dependências estão em `package.json`
+
+---
+
+## ❌ Problema: Python version mismatch
+
+### Sintoma
+```
+ERROR: This project requires Python 3.13
+```
+
+### Causa
+Railway detectou versão errada do Python.
+
+### ✅ Solução
+1. Verificar `backend/runtime.txt`:
+   ```
+   python-3.13.0
+   ```
+
+2. Verificar `backend/.python-version`:
+   ```
+   3.13.0
+   ```
+
+3. Verificar `backend/nixpacks.toml`:
+   ```toml
+   [phases.setup]
+   nixPkgs = ["python313", "postgresql"]
+   ```
+
+---
+
+## ❌ Problema: Variável de ambiente não é reconhecida
+
+### Sintoma
+Aplicação usa valor padrão ao invés do configurado.
+
+### Causa
+Variável não foi definida no Railway ou tem nome errado.
+
+### ✅ Solução
+1. No Railway, ir em **Variables**
+2. Verificar se variável está presente
+3. Verificar se nome está exatamente igual ao código
+4. **IMPORTANTE**: Variáveis são case-sensitive!
+
+### Variáveis Obrigatórias
+
+**Backend:**
+- `DATABASE_URL` ✅
+- `SECRET_KEY` ✅
+- `DEBUG` ✅
+- `CORS_ORIGINS` ✅
+
+**Frontend:**
+- `VITE_API_URL` ✅
+- `NODE_ENV` (opcional)
+
+---
+
+## ❌ Problema: Nixpacks não detecta corretamente o projeto
+
+### Sintoma
+```
+ERROR: No supported language detected
+```
+
+### Causa
+Arquivos de configuração não estão no root correto.
+
+### ✅ Solução
+1. **Verificar Root Directory no Railway:**
+   - Backend: `backend`
+   - Frontend: `frontend`
+
+2. **Verificar arquivos necessários:**
+   - Backend: `requirements.txt` em `backend/`
+   - Frontend: `package.json` em `frontend/`
+
+3. **Adicionar arquivo nixpacks.toml** (já criado):
+   - Backend: `backend/nixpacks.toml`
+   - Frontend: `frontend/nixpacks.toml`
+
+---
+
+## ❌ Problema: App crashes após deploy
+
+### Sintoma
+```
+Application error
+```
+
+### Causa
+Erro no código, variável faltando, ou comando de start incorreto.
+
+### ✅ Solução
+1. **Ver logs no Railway:**
+   - Deployments → Deployment mais recente → Logs
+
+2. **Verificar Start Command:**
+   - Backend: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - Frontend: `npm run preview -- --host 0.0.0.0 --port $PORT`
+
+3. **Testar localmente:**
+   ```bash
+   # Backend
+   cd backend
+   uvicorn main:app --host 0.0.0.0 --port 8000
+
+   # Frontend
+   cd frontend
+   npm run build
+   npm run preview
+   ```
+
+---
+
+## ❌ Problema: Login não funciona
+
+### Sintoma
+Erro 401 ou "Invalid credentials" sempre.
+
+### Causa
+`SECRET_KEY` não está configurada ou mudou após criar usuários.
+
+### ✅ Solução
+1. Verificar se `SECRET_KEY` está definida no Railway
+2. **NUNCA mude `SECRET_KEY` em produção!**
+3. Se precisar mudar, todos os usuários precisam fazer login novamente
+
+---
+
+## ❌ Problema: Migrations não rodaram
+
+### Sintoma
+Erro ao acessar tabelas: "relation does not exist".
+
+### Causa
+Banco existe mas tabelas não foram criadas.
+
+### ✅ Solução
+**As migrations não rodam automaticamente no Railway!**
+
+Opções:
+
+1. **Rodar migrations localmente:**
+   ```bash
+   cd backend
+   # Configure DATABASE_URL local
+   export DATABASE_URL="postgresql://..."
+   alembic upgrade head
+   ```
+
+2. **Railway CLI:**
+   ```bash
+   railway run alembic upgrade head
+   ```
+
+3. **Adicionar ao start command (não recomendado):**
+   ```bash
+   alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT
+   ```
+
+**⚠️ Atenção:** No nosso caso, o banco já está populado no Render.com, então não precisa rodar migrations!
+
+---
+
+## 🆘 Checklist de Debug
+
+Quando algo não funciona:
+
+1. [ ] Ver logs no Railway (Deployments → Latest)
+2. [ ] Testar endpoints diretamente no navegador
+3. [ ] Verificar variáveis de ambiente
+4. [ ] Testar build localmente
+5. [ ] Verificar Root Directory
+6. [ ] Verificar Start Command
+7. [ ] Verificar CORS no DevTools → Network
+8. [ ] Verificar conexão com banco
+
+---
+
+## 📚 Recursos Úteis
+
+- **Railway Docs**: https://docs.railway.app
+- **Nixpacks Docs**: https://nixpacks.com
+- **FastAPI Docs**: https://fastapi.tiangolo.com
+- **Vite Docs**: https://vitejs.dev
+
+---
+
+## ✅ Tudo Funcionando?
+
+Se seguiu este guia e tudo está OK:
+
+- ✅ Backend responde em `/health`
+- ✅ Frontend abre sem erros
+- ✅ Login funciona
+- ✅ API responde corretamente
+- ✅ Sem erros CORS
+
+**Parabéns! Deploy concluído com sucesso! 🎉**
