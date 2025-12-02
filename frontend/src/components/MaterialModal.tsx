@@ -13,6 +13,7 @@ const UNIDADES_MEDIDA = [
   { value: 'ML', label: 'Mililitros (ml)' },
   { value: 'UNIDADE', label: 'Unidade' },
   { value: 'GRAMA', label: 'Gramas (g)' },
+  { value: 'CM', label: 'Centímetros (cm)' },
 ]
 
 const MaterialModal: React.FC<MaterialModalProps> = ({
@@ -27,7 +28,7 @@ const MaterialModal: React.FC<MaterialModalProps> = ({
     nome: '',
     descricao: '',
     valor_custo: '',
-    unidade_medida: 'UNIDADE' as 'ML' | 'UNIDADE' | 'GRAMA',
+    unidade_medida: 'UNIDADE' as 'ML' | 'UNIDADE' | 'GRAMA' | 'CM',
     quantidade_estoque: '',
     quantidade_minima: '',
     marca: '',

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { authApi } from '../services/api'
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -15,7 +15,7 @@ const LoginPage: React.FC = () => {
     setError('')
 
     try {
-      const response = await authApi.login({ email, password })
+      const response = await authApi.login({ username, password })
 
       // Salvar token e dados do usuário
       localStorage.setItem('access_token', response.access_token)
@@ -33,13 +33,12 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Agenda OnSell
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sistema de Agendamento Empresarial
-          </p>
+        <div className="text-center">
+          <img
+            src="/src/assets/SAS.png"
+            alt="Logo SAS"
+            className="w-64 h-64 mx-auto object-contain"
+          />
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -50,18 +49,18 @@ const LoginPage: React.FC = () => {
           )}
 
           <div>
-            <label htmlFor="email" className="sr-only">
-              Email
+            <label htmlFor="username" className="sr-only">
+              Username
             </label>
             <input
-              id="email"
-              name="email"
-              type="email"
+              id="username"
+              name="username"
+              type="text"
               required
               className="input"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
             />
           </div>
 
@@ -89,12 +88,6 @@ const LoginPage: React.FC = () => {
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
-          </div>
-
-          <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded">
-            <strong>Login de Teste:</strong><br />
-            Email: carlos@barbeariamoderna.com<br />
-            Senha: 123456
           </div>
         </form>
       </div>

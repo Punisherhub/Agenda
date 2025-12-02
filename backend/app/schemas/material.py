@@ -7,7 +7,7 @@ class MaterialBase(BaseModel):
     nome: str = Field(..., min_length=1, max_length=255)
     descricao: Optional[str] = None
     valor_custo: float = Field(..., gt=0)
-    unidade_medida: str  # "ML", "UNIDADE", "GRAMA"
+    unidade_medida: str  # "ML", "UNIDADE", "GRAMA", "CM"
     quantidade_estoque: float = Field(..., ge=0)
     quantidade_minima: Optional[float] = None
     marca: Optional[str] = None

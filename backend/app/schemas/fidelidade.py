@@ -8,7 +8,7 @@ from decimal import Decimal
 
 class ConfiguracaoFidelidadeBase(BaseModel):
     reais_por_ponto: Decimal = Field(..., description="Valor em reais para ganhar 1 ponto")
-    ativo: bool = True
+    ativo: bool = False
 
 
 class ConfiguracaoFidelidadeCreate(ConfiguracaoFidelidadeBase):

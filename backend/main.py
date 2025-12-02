@@ -16,13 +16,12 @@ app = FastAPI(
 # Handler para erros de validação (modo desenvolvimento - mostra detalhes)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    if settings.debug:
-        print("=== ERRO DE VALIDACAO ===")
-        print(f"URL: {request.url}")
-        print(f"Method: {request.method}")
-        print(f"Erros: {exc.errors()}")
-        print(f"Body: {exc.body}")
-        print("========================")
+    print("=== ERRO DE VALIDACAO ===")
+    print(f"URL: {request.url}")
+    print(f"Method: {request.method}")
+    print(f"Erros: {exc.errors()}")
+    print(f"Body: {exc.body}")
+    print("========================")
     return JSONResponse(
         status_code=422,
         content={"detail": exc.errors()}

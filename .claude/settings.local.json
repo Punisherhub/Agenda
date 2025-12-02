@@ -15,7 +15,8 @@
       "Bash(pkill:*)",
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 12836 -Force\")"
     ],
     "deny": [],
     "ask": []

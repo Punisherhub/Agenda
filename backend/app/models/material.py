@@ -9,6 +9,7 @@ class UnidadeMedida(enum.Enum):
     ML = "ML"           # Mililitros (líquidos)
     UNIDADE = "UNIDADE" # Unidades (itens)
     GRAMA = "GRAMA"     # Gramas (sólidos)
+    CM = "CM"           # Centímetros (comprimento)
 
 
 class Material(Base):

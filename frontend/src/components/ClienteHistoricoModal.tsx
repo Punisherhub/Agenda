@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { X, Calendar, Clock, DollarSign } from 'lucide-react'
+import { X, Eye } from 'lucide-react'
 import { clientesApi } from '../services/api'
 import { Cliente, Agendamento } from '../types'
+import { format } from 'date-fns'
+import AgendamentoDetailModal from './AgendamentoDetailModal'
 
 interface ClienteHistoricoModalProps {
   isOpen: boolean
@@ -42,6 +44,8 @@ const ClienteHistoricoModal: React.FC<ClienteHistoricoModalProps> = ({
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
 
   useEffect(() => {
     if (isOpen && cliente) {
@@ -100,74 +104,62 @@ const ClienteHistoricoModal: React.FC<ClienteHistoricoModalProps> = ({
             </div>
           ) : agendamentos.length === 0 ? (
             <div className="text-center py-12">
-              <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg">Nenhum agendamento encontrado</p>
               <p className="text-gray-400 text-sm mt-2">
                 Este cliente ainda não possui agendamentos
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {agendamentos.map((agendamento) => (
-                <div
-                  key={agendamento.id}
-                  className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {agendamento.servico?.nome || 'Serviço'}
-                        </h3>
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                            agendamento.status
-                          )}`}
-                        >
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serviço</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hora</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {agendamentos.map((agendamento) => (
+                    <tr key={agendamento.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {agendamento.servico_personalizado
+                          ? agendamento.servico_personalizado_nome
+                          : agendamento.servico?.nome || 'Serviço não informado'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {format(new Date(agendamento.data_inicio), 'dd/MM/yyyy')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {format(new Date(agendamento.data_inicio), 'HH:mm')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                        R$ {Number(agendamento.valor_final).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(agendamento.status)}`}>
                           {getStatusLabel(agendamento.status)}
                         </span>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            {new Date(agendamento.data_inicio).toLocaleDateString('pt-BR')}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          <span>
-                            {new Date(agendamento.data_inicio).toLocaleTimeString('pt-BR', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                            {' - '}
-                            {new Date(agendamento.data_fim).toLocaleTimeString('pt-BR', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4" />
-                          <span className="font-medium">
-                            R$ {Number(agendamento.valor_final).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {agendamento.observacoes && (
-                        <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-700">
-                          <strong>Observações:</strong> {agendamento.observacoes}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <button
+                          onClick={() => {
+                            setSelectedAgendamento(agendamento)
+                            setShowDetailModal(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-900 font-medium inline-flex items-center gap-1"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Ver Detalhes
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -179,6 +171,18 @@ const ClienteHistoricoModal: React.FC<ClienteHistoricoModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Modal de Detalhes do Agendamento */}
+      {selectedAgendamento && (
+        <AgendamentoDetailModal
+          agendamento={selectedAgendamento}
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false)
+            setSelectedAgendamento(null)
+          }}
+        />
+      )}
     </div>
   )
 }

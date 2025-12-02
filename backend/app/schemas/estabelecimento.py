@@ -1,6 +1,9 @@
-from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, Field, field_serializer
+from typing import Optional, List, Any, TYPE_CHECKING
 from datetime import datetime, time
+
+if TYPE_CHECKING:
+    from app.schemas.empresa import EmpresaResponse
 
 
 class EstabelecimentoCreate(BaseModel):
@@ -33,6 +36,18 @@ class EstabelecimentoUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class EmpresaSimpleResponse(BaseModel):
+    """Schema simplificado de empresa para evitar import circular"""
+    id: int
+    nome: str
+    cnpj: str
+    email: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
 class EstabelecimentoResponse(BaseModel):
     id: int
     nome: str
@@ -48,8 +63,16 @@ class EstabelecimentoResponse(BaseModel):
     is_active: bool
     capacidade_maxima: int
     empresa_id: int
+    empresa: Optional[EmpresaSimpleResponse] = None  # Incluir dados da empresa
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    @field_serializer('horario_abertura', 'horario_fechamento')
+    def serialize_time(self, value: Optional[time]) -> Optional[str]:
+        """Serializar time como string HH:MM:SS"""
+        if value is None:
+            return None
+        return value.strftime('%H:%M:%S')
 
     class Config:
         from_attributes = True

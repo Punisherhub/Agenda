@@ -3,12 +3,16 @@ from sqlalchemy import and_, or_, func
 from fastapi import HTTPException, status
 from typing import Optional, List
 from datetime import datetime, date, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from app.models.agendamento import Agendamento, StatusAgendamento
 from app.models.user import User
 from app.models.cliente import Cliente
 from app.models.servico import Servico
 from app.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate
+
+# Timezone do Brasil
+BRAZIL_TZ = ZoneInfo("America/Sao_Paulo")
 
 
 class AgendamentoService:
@@ -36,11 +40,20 @@ class AgendamentoService:
         )
 
         # Aplicar filtros
+        # IMPORTANTE: Usar AT TIME ZONE para extrair data no timezone do Brasil
         if data_inicio:
-            query = query.filter(func.date(Agendamento.data_inicio) >= data_inicio)
+            print(f'[FILTRO] data_inicio >= {data_inicio}')
+            # Extrair data no timezone do Brasil, não UTC
+            query = query.filter(
+                func.date(Agendamento.data_inicio.op('AT TIME ZONE')('America/Sao_Paulo')) >= data_inicio
+            )
 
         if data_fim:
-            query = query.filter(func.date(Agendamento.data_inicio) <= data_fim)
+            print(f'[FILTRO] data_inicio <= {data_fim}')
+            # Extrair data no timezone do Brasil, não UTC
+            query = query.filter(
+                func.date(Agendamento.data_inicio.op('AT TIME ZONE')('America/Sao_Paulo')) <= data_fim
+            )
 
         if status:
             query = query.filter(Agendamento.status == status)
@@ -57,6 +70,12 @@ class AgendamentoService:
         total = query.count()
         agendamentos = query.offset(skip).limit(limit).all()
 
+        # DEBUG: Log dos agendamentos retornados
+        if data_inicio or data_fim:
+            print(f'[RESULTADO] Total: {total}, Retornando: {len(agendamentos)}')
+            for ag in agendamentos:
+                print(f'  ID {ag.id}: {ag.data_inicio}')
+
         return agendamentos, total
 
     @staticmethod
@@ -66,6 +85,14 @@ class AgendamentoService:
         current_user: User
     ) -> Agendamento:
         """Criar novo agendamento (serviço predefinido ou personalizado)."""
+
+        # DEBUG: Verificar timezone recebido
+        print(f"[CREATE] data_inicio recebido: {agendamento_data.data_inicio}")
+        print(f"[CREATE] data_inicio type: {type(agendamento_data.data_inicio)}")
+        print(f"[CREATE] data_inicio tzinfo: {agendamento_data.data_inicio.tzinfo}")
+        if agendamento_data.data_fim:
+            print(f"[CREATE] data_fim recebido: {agendamento_data.data_fim}")
+            print(f"[CREATE] data_fim tzinfo: {agendamento_data.data_fim.tzinfo}")
 
         # Verificar se cliente existe
         cliente = db.query(Cliente).filter(Cliente.id == agendamento_data.cliente_id).first()
@@ -125,30 +152,13 @@ class AgendamentoService:
         else:
             data_fim = agendamento_data.data_inicio + timedelta(minutes=duracao_minutos)
 
-        # Verificar conflitos de horário
-        conflito = db.query(Agendamento).filter(
-            Agendamento.estabelecimento_id == current_user.estabelecimento_id,
-            Agendamento.status.in_([StatusAgendamento.AGENDADO, StatusAgendamento.CONFIRMADO]),
-            or_(
-                and_(Agendamento.data_inicio <= agendamento_data.data_inicio, Agendamento.data_fim > agendamento_data.data_inicio),
-                and_(Agendamento.data_inicio < data_fim, Agendamento.data_fim >= data_fim),
-                and_(Agendamento.data_inicio >= agendamento_data.data_inicio, Agendamento.data_fim <= data_fim)
-            )
-        ).first()
-
-        if conflito:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Conflito de horário com agendamento existente (ID: {conflito.id})"
-            )
-
         # Calcular valores finais
         valor_desconto = agendamento_data.valor_desconto or 0
         valor_final = valor_servico - valor_desconto
 
         # Criar agendamento
         db_agendamento = Agendamento(
-            data_agendamento=datetime.now(),
+            data_agendamento=datetime.now(BRAZIL_TZ),
             data_inicio=agendamento_data.data_inicio,
             data_fim=data_fim,
             status=StatusAgendamento.AGENDADO,
@@ -202,6 +212,9 @@ class AgendamentoService:
     ) -> Agendamento:
         """Atualizar agendamento."""
 
+        print(f"[UPDATE] Atualizando agendamento ID: {agendamento_id}")
+        print(f"[UPDATE] Dados recebidos: {agendamento_data}")
+
         agendamento = AgendamentoService.get_agendamento(
             db, agendamento_id, current_user.estabelecimento_id
         )
@@ -248,10 +261,10 @@ class AgendamentoService:
         status_valor = novo_status.value if hasattr(novo_status, 'value') else str(novo_status)
 
         if status_valor == StatusAgendamento.CANCELADO.value:
-            agendamento.canceled_at = datetime.now()
+            agendamento.canceled_at = datetime.now(BRAZIL_TZ)
             print(f"[AGENDAMENTO] Marcado como cancelado")
         elif status_valor == StatusAgendamento.CONCLUIDO.value:
-            agendamento.completed_at = datetime.now()
+            agendamento.completed_at = datetime.now(BRAZIL_TZ)
 
             # Sistema de fidelidade: adicionar pontos automaticamente
             print(f"[AGENDAMENTO] Concluindo agendamento {agendamento_id}, processando fidelidade...")
@@ -285,8 +298,8 @@ class AgendamentoService:
             joinedload(Agendamento.vendedor)
         ).filter(
             Agendamento.estabelecimento_id == estabelecimento_id,
-            func.date(Agendamento.data_inicio) >= data_inicio,
-            func.date(Agendamento.data_inicio) <= data_fim,
+            func.date(Agendamento.data_inicio.op('AT TIME ZONE')('America/Sao_Paulo')) >= data_inicio,
+            func.date(Agendamento.data_inicio.op('AT TIME ZONE')('America/Sao_Paulo')) <= data_fim,
             Agendamento.status != StatusAgendamento.CANCELADO,
             Agendamento.deleted_at.is_(None)  # Não mostrar agendamentos excluídos
         ).order_by(Agendamento.data_inicio).all()
@@ -322,6 +335,6 @@ class AgendamentoService:
             db.delete(agendamento)
         else:
             # Outros status: soft delete (apenas oculta do calendário)
-            agendamento.deleted_at = datetime.now(timezone.utc)
+            agendamento.deleted_at = datetime.now(BRAZIL_TZ)
 
         db.commit()

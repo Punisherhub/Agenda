@@ -43,9 +43,22 @@ async def get_current_user(
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuário desativado. Contate o administrador."
         )
+
+    # Verificar se o estabelecimento do usuário está ativo
+    if user.estabelecimento_id:
+        from app.models.estabelecimento import Estabelecimento
+        estabelecimento = db.query(Estabelecimento).filter(
+            Estabelecimento.id == user.estabelecimento_id
+        ).first()
+
+        if estabelecimento and not estabelecimento.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Estabelecimento desativado. Contate o administrador."
+            )
 
     return user
 
@@ -54,11 +67,7 @@ async def get_current_active_user(
     current_user: User = Depends(get_current_user)
 ) -> User:
     """Get current active user."""
-    if not current_user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
-        )
+    # Já verificado em get_current_user
     return current_user
 
 

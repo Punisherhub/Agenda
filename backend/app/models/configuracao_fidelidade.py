@@ -17,7 +17,7 @@ class ConfiguracaoFidelidade(Base):
     )
 
     # Status
-    ativo = Column(Boolean, default=True, nullable=False)
+    ativo = Column(Boolean, default=False, nullable=False)
 
     # Foreign Key
     estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id"), nullable=False, index=True)

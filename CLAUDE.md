@@ -26,6 +26,7 @@ cd frontend && npm run dev
 - **Health Check**: http://localhost:8000/health
 
 **Test Users**:
+- Suporte: `eduardo@suporte.com` / `suporte123` (cross-empresa)
 - Admin: `admin@barbeariamoderna.com` / `123456`
 - Vendedor: `carlos@barbeariamoderna.com` / `123456`
 
@@ -125,9 +126,18 @@ class UserRole(enum.Enum):
     MANAGER = "manager"     # Gerente do estabelecimento
     VENDEDOR = "vendedor"   # Vendedor/Funcionário
     ATENDENTE = "atendente" # Atendente
+    SUPORTE = "suporte"     # Suporte técnico (acesso total cross-empresa)
 ```
 
 **REGRAS DE NEGÓCIO:**
+
+#### Acesso Super Admin (SUPORTE)
+- ✅ Visualizar/editar TODAS empresas e estabelecimentos
+- ✅ Gerenciar usuários de qualquer empresa
+- ✅ Acesso cross-estabelecimento (não tem filtro por estabelecimento_id)
+- ✅ Interface exclusiva em `/suporte` (SuportePage.tsx)
+- **Credencial**: `eduardo@suporte.com` / `suporte123`
+- **Script**: `backend/create_suporte_user.py` para criar usuário
 
 #### Acesso Total (ADMIN e MANAGER)
 - ✅ Agendamentos (criar, editar, deletar, visualizar)
@@ -136,6 +146,7 @@ class UserRole(enum.Enum):
 - ✅ Materiais (criar, editar, deletar, visualizar)
 - ✅ Relatórios Financeiros (visualizar)
 - ✅ Dashboard completo
+- ⚠️ Limitado ao próprio estabelecimento
 
 #### Acesso Limitado (VENDEDOR e ATENDENTE)
 - ✅ Agendamentos (criar, editar, deletar, visualizar)
@@ -143,6 +154,7 @@ class UserRole(enum.Enum):
 - ❌ Serviços (sem acesso)
 - ❌ Materiais (sem acesso)
 - ❌ Relatórios Financeiros (sem acesso)
+- ⚠️ Limitado ao próprio estabelecimento
 
 **IMPLEMENTAÇÃO:**
 - Backend: Verificação via `check_admin_or_manager()` em `app/utils/permissions.py`
@@ -152,10 +164,17 @@ class UserRole(enum.Enum):
 
 ### Usuários de Teste
 ```
+# Suporte (acesso total cross-empresa)
+Email: eduardo@suporte.com
+Senha: suporte123
+Role: SUPORTE
+
+# Administrador
 Email: admin@barbeariamoderna.com
 Senha: 123456
 Role: ADMIN
 
+# Vendedor
 Email: carlos@barbeariamoderna.com
 Senha: 123456
 Role: VENDEDOR
@@ -397,7 +416,9 @@ frontend/
 │   │   ├── ServicosPage.tsx # Services CRUD page
 │   │   ├── MateriaisPage.tsx # Materials/inventory CRUD page
 │   │   ├── RelatoriosPage.tsx # Financial reports dashboard
-│   │   └── FidelidadePage.tsx # Loyalty program management
+│   │   ├── FidelidadePage.tsx # Loyalty program management
+│   │   ├── SuportePage.tsx # Support admin page (cross-empresa)
+│   │   └── SuporteLoginPage.tsx # Support login page
 │   ├── services/          # API service layer
 │   │   └── api.ts         # Axios client + all API calls
 │   ├── types/             # TypeScript type definitions
@@ -716,6 +737,40 @@ POST /fidelidade/resgates
 - `backend/app/models/cliente.py:XX` - Campo `pontos` adicionado
 - `frontend/src/pages/FidelidadePage.tsx` - Interface de gerenciamento
 
+## 🛠️ Sistema de Suporte
+
+### Visão Geral
+Sistema especial para suporte técnico com acesso cross-empresa (não limitado a um estabelecimento específico).
+
+### Funcionalidades
+- **Visualizar todas empresas**: Lista completa de empresas cadastradas
+- **Gerenciar estabelecimentos**: Ver/editar estabelecimentos de qualquer empresa
+- **Gerenciar usuários**: Criar/editar usuários de qualquer estabelecimento
+- **Interface exclusiva**: Página `/suporte` (SuportePage.tsx) com menu simplificado
+
+### Acesso
+**Credenciais de Suporte**:
+- Email: `eduardo@suporte.com`
+- Senha: `suporte123`
+- Role: `SUPORTE`
+
+### Criar Novo Usuário de Suporte
+```bash
+cd backend && python create_suporte_user.py
+```
+
+Este script cria o usuário Eduardo (suporte) com role SUPORTE e acesso total.
+
+### Implementação
+- **Model**: `backend/app/models/user.py:13` - Role `SUPORTE` no enum
+- **Frontend**: `frontend/src/pages/SuportePage.tsx` - Interface administrativa
+- **Login**: `frontend/src/pages/SuporteLoginPage.tsx` - Login dedicado para suporte
+- **Rota**: `/suporte` (acessível apenas com role SUPORTE)
+
+### Diferenças do ADMIN/MANAGER
+- **SUPORTE**: Acesso a TODAS empresas/estabelecimentos (cross-tenant)
+- **ADMIN/MANAGER**: Limitado ao próprio estabelecimento
+
 ## 🐛 Troubleshooting
 
 ### Quick File Reference
@@ -739,8 +794,10 @@ POST /fidelidade/resgates
 
 **Role/Permission Issues**:
 - `backend/app/utils/permissions.py:1` - RBAC helpers (check_admin_or_manager)
-- `backend/app/models/user.py:7` - UserRole enum (ADMIN, MANAGER, VENDEDOR, ATENDENTE)
+- `backend/app/models/user.py:8` - UserRole enum (ADMIN, MANAGER, VENDEDOR, ATENDENTE, SUPORTE)
 - `frontend/src/components/RoleProtectedRoute.tsx:1` - Role-based route guard
+- `frontend/src/pages/SuportePage.tsx:1` - Support admin interface (cross-empresa)
+- `backend/create_suporte_user.py:1` - Script to create support user
 
 **Appointment/Calendar Issues**:
 - `backend/app/services/agendamento_service.py:1` - Core appointment business logic

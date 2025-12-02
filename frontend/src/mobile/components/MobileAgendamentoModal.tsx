@@ -25,22 +25,39 @@ interface Servico {
   descricao?: string
 }
 
+interface Agendamento {
+  id: number
+  cliente_id: number
+  servico_id: number | null
+  data_inicio: string
+  data_fim: string
+  valor_servico: number
+  valor_desconto: number
+  observacoes?: string
+  cliente?: Cliente
+  servico?: Servico
+}
+
 interface MobileAgendamentoModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (data: any) => Promise<void>
+  agendamento?: Agendamento | null
   servicos: Servico[]
   clientes: Cliente[]
   loading?: boolean
+  clientePreSelecionado?: Cliente | null
 }
 
 const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  agendamento = null,
   servicos,
   clientes,
-  loading = false
+  loading = false,
+  clientePreSelecionado = null
 }) => {
   // Form state
   const [clienteId, setClienteId] = useState<number | null>(null)
@@ -67,38 +84,73 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
       )
     : []
 
-  // Reset form quando modal abre
+  // Reset form quando modal abre ou agendamento muda
   useEffect(() => {
     if (isOpen) {
       try {
-        // Preencher com valores padrão (usando horário local, não UTC)
-        const hoje = new Date()
-        const ano = hoje.getFullYear()
-        const mes = (hoje.getMonth() + 1).toString().padStart(2, '0')
-        const dia = hoje.getDate().toString().padStart(2, '0')
-        const dataHoje = `${ano}-${mes}-${dia}`
-        const horas = hoje.getHours().toString().padStart(2, '0')
-        const minutos = hoje.getMinutes().toString().padStart(2, '0')
-        const horaAtual = `${horas}:${minutos}`
+        console.log('🔍 MOBILE MODAL - useEffect executado')
+        console.log('  agendamento recebido:', agendamento)
 
-        setClienteId(null)
-        setClienteBusca('')
-        setServicoId(null)
-        setIsServicoPersonalizado(false)
-        setServicoPersonalizadoNome('')
-        setServicoPersonalizadoDescricao('')
-        setValorServicoPersonalizado('')
-        setDataInicio(dataHoje)
-        setHoraInicio(horaAtual)
-        setHoraFim('')
-        setValorDesconto('0')
-        setObservacoes('')
+        if (agendamento) {
+          console.log('✏️ MODO EDICAO - Preenchendo com dados do agendamento ID:', agendamento.id)
+          // Modo edição - preencher com dados do agendamento
+          const cliente = clientes.find(c => c.id === agendamento.cliente_id)
+          setClienteId(agendamento.cliente_id)
+          setClienteBusca(cliente?.nome || '')
+          setServicoId(agendamento.servico_id)
+
+          // Extrair data e hora do ISO string
+          const dataInicioMatch = agendamento.data_inicio.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+          const dataFimMatch = agendamento.data_fim.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+
+          if (dataInicioMatch) {
+            setDataInicio(`${dataInicioMatch[1]}-${dataInicioMatch[2]}-${dataInicioMatch[3]}`)
+            setHoraInicio(`${dataInicioMatch[4]}:${dataInicioMatch[5]}`)
+          }
+
+          if (dataFimMatch) {
+            setHoraFim(`${dataFimMatch[4]}:${dataFimMatch[5]}`)
+          }
+
+          setValorDesconto(agendamento.valor_desconto.toString())
+          setObservacoes(agendamento.observacoes || '')
+          setIsServicoPersonalizado(false)
+        } else {
+          // Modo criação - preencher com valores padrão (usando horário local, não UTC)
+          const hoje = new Date()
+          const ano = hoje.getFullYear()
+          const mes = (hoje.getMonth() + 1).toString().padStart(2, '0')
+          const dia = hoje.getDate().toString().padStart(2, '0')
+          const dataHoje = `${ano}-${mes}-${dia}`
+          const horas = hoje.getHours().toString().padStart(2, '0')
+          const minutos = hoje.getMinutes().toString().padStart(2, '0')
+          const horaAtual = `${horas}:${minutos}`
+
+          // Se há cliente pré-selecionado, usar ele
+          if (clientePreSelecionado) {
+            setClienteId(clientePreSelecionado.id)
+            setClienteBusca(clientePreSelecionado.nome)
+          } else {
+            setClienteId(null)
+            setClienteBusca('')
+          }
+          setServicoId(null)
+          setIsServicoPersonalizado(false)
+          setServicoPersonalizadoNome('')
+          setServicoPersonalizadoDescricao('')
+          setValorServicoPersonalizado('')
+          setDataInicio(dataHoje)
+          setHoraInicio(horaAtual)
+          setHoraFim('')
+          setValorDesconto('0')
+          setObservacoes('')
+        }
         setShowClienteList(false)
       } catch (error) {
         console.error('Erro ao resetar form:', error)
       }
     }
-  }, [isOpen])
+  }, [isOpen, agendamento, clientes, clientePreSelecionado])
 
   // Calcular duração
   const calcularDuracao = () => {
@@ -208,21 +260,33 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
       return
     }
 
+    // Construir data de início e fim SEM timezone (naive datetime)
+    // O backend vai assumir que é hora do Brasil e adicionar o timezone correto
+    const [ano, mes, dia] = dataInicio.split('-').map(Number)
+
+    // Parse hora início e fim
+    const [horaIniNum, minIniNum] = horaInicio.split(':').map(Number)
+    const [horaFimNum, minFimNum] = horaFim.split(':').map(Number)
+
     // Validar que hora fim > hora início
-    const [horaIni, minIni] = horaInicio.split(':').map(Number)
-    const [horaFimNum, minFim] = horaFim.split(':').map(Number)
-    const minutosTotaisIni = horaIni * 60 + minIni
-    const minutosTotaisFim = horaFimNum * 60 + minFim
+    const minutosTotaisIni = horaIniNum * 60 + minIniNum
+    const minutosTotaisFim = horaFimNum * 60 + minFimNum
 
     if (minutosTotaisFim <= minutosTotaisIni) {
       alert('Horário de término deve ser após o horário de início')
       return
     }
 
-    // Construir data de início e fim (mantendo timezone Brasil UTC-3)
-    // IMPORTANTE: Não usar .toISOString() pois converte para UTC e muda a data!
-    const dataInicioISO = `${dataInicio}T${horaInicio}:00-03:00`
-    const dataFimISO = `${dataInicio}T${horaFim}:00-03:00`
+    // Formatar como ISO SEM timezone (naive datetime)
+    // Backend vai interpretar como hora do Brasil
+    const dataInicioISO = `${dataInicio}T${horaInicio}:00`
+    const dataFimISO = `${dataInicio}T${horaFim}:00`
+
+    console.log('📅 MOBILE MODAL - Datas sendo enviadas:')
+    console.log('  dataInicio:', dataInicio, 'horaInicio:', horaInicio)
+    console.log('  dataInicioISO (naive):', dataInicioISO)
+    console.log('  horaFim:', horaFim)
+    console.log('  dataFimISO (naive):', dataFimISO)
 
     // Construir payload
     const agendamentoData: any = {

@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { materiaisApi } from '../../services/api'
+import { Material } from '../../types'
 import MobileLayout from '../layouts/MobileLayout'
-import {
-  ExclamationTriangleIcon,
-  CubeIcon,
-  LightBulbIcon
-} from '@heroicons/react/24/outline'
+import MobileFAB from '../components/MobileFAB'
+import MobileMaterialModal from '../components/MobileMaterialModal'
 
 const MobileMateriaisPage: React.FC = () => {
+  const queryClient = useQueryClient()
   const [materiais, setMateriais] = useState<any[]>([])
   const [erro, setErro] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null)
 
   // Buscar materiais com proteção máxima contra erros
   const query = useQuery({
@@ -29,6 +30,50 @@ const MobileMateriaisPage: React.FC = () => {
     staleTime: 30000
   })
 
+  // Mutation criar material
+  const createMutation = useMutation({
+    mutationFn: materiaisApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['materiais-mobile-safe'] })
+      setIsModalOpen(false)
+      setEditingMaterial(null)
+      alert('✅ Material criado com sucesso!')
+    },
+    onError: (error: any) => {
+      const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
+      alert(`❌ Erro ao criar material:\n${errorMsg}`)
+    }
+  })
+
+  // Mutation atualizar material
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      materiaisApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['materiais-mobile-safe'] })
+      setIsModalOpen(false)
+      setEditingMaterial(null)
+      alert('✅ Material atualizado com sucesso!')
+    },
+    onError: (error: any) => {
+      const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
+      alert(`❌ Erro ao atualizar material:\n${errorMsg}`)
+    }
+  })
+
+  // Mutation deletar material
+  const deleteMutation = useMutation({
+    mutationFn: materiaisApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['materiais-mobile-safe'] })
+      alert('✅ Material deletado com sucesso!')
+    },
+    onError: (error: any) => {
+      const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
+      alert(`❌ Erro ao deletar material:\n${errorMsg}`)
+    }
+  })
+
   // Atualizar estado quando query retornar
   useEffect(() => {
     if (query.data && query.data.materiais) {
@@ -37,6 +82,34 @@ const MobileMateriaisPage: React.FC = () => {
   }, [query.data])
 
   const isLoading = query.isLoading
+
+  // Handler para salvar material (criar ou editar)
+  const handleSaveMaterial = (data: any) => {
+    if (editingMaterial) {
+      updateMutation.mutate({ id: editingMaterial.id, data })
+    } else {
+      createMutation.mutate(data)
+    }
+  }
+
+  // Handler para editar
+  const handleEdit = (material: Material) => {
+    setEditingMaterial(material)
+    setIsModalOpen(true)
+  }
+
+  // Handler para deletar
+  const handleDelete = (id: number, nome: string) => {
+    if (confirm(`Tem certeza que deseja deletar o material "${nome}"?`)) {
+      deleteMutation.mutate(id)
+    }
+  }
+
+  // Handler para abrir modal de criação
+  const handleOpenModal = () => {
+    setEditingMaterial(null)
+    setIsModalOpen(true)
+  }
 
   // Calcular estatísticas de forma segura
   const calcularEstatisticas = () => {
@@ -99,7 +172,7 @@ const MobileMateriaisPage: React.FC = () => {
         {erro && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="text-sm text-red-800">
-              <ExclamationTriangleIcon className="w-4 h-4 inline" /> Erro ao carregar dados. Usando modo offline.
+              Erro ao carregar dados. Usando modo offline.
             </div>
           </div>
         )}
@@ -107,14 +180,11 @@ const MobileMateriaisPage: React.FC = () => {
         {/* Alerta Estoque Baixo */}
         {stats.baixoEstoque > 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <ExclamationTriangleIcon className="w-8 h-8 text-yellow-600" />
-              <div>
-                <div className="font-bold text-yellow-800">
-                  {stats.baixoEstoque} {stats.baixoEstoque === 1 ? 'item' : 'itens'} com estoque baixo
-                </div>
-                <div className="text-sm text-yellow-700">Verifique e reponha</div>
+            <div>
+              <div className="font-bold text-yellow-800">
+                {stats.baixoEstoque} {stats.baixoEstoque === 1 ? 'item' : 'itens'} com estoque baixo
               </div>
+              <div className="text-sm text-yellow-700">Verifique e reponha</div>
             </div>
           </div>
         )}
@@ -158,14 +228,11 @@ const MobileMateriaisPage: React.FC = () => {
                 >
                   {/* Cabeçalho */}
                   <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <CubeIcon className="w-8 h-8 text-gray-600" />
-                      <div className="flex-1">
-                        <h3 className="font-bold text-gray-900 text-lg">{material.nome}</h3>
-                        {material.descricao && (
-                          <p className="text-sm text-gray-600 mt-1">{material.descricao}</p>
-                        )}
-                      </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-900 text-lg">{material.nome}</h3>
+                      {material.descricao && (
+                        <p className="text-sm text-gray-600 mt-1">{material.descricao}</p>
+                      )}
                     </div>
                     <span className={`px-2 py-1 text-xs rounded-full font-medium ${status.cor}`}>
                       {status.texto}
@@ -199,22 +266,44 @@ const MobileMateriaisPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
+
+                  {/* Botões de Ação */}
+                  <div className="flex gap-2 pt-2 border-t">
+                    <button
+                      onClick={() => handleEdit(material)}
+                      className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium active:bg-blue-700"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(material.id, material.nome)}
+                      className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium active:bg-red-700"
+                    >
+                      Deletar
+                    </button>
+                  </div>
                 </div>
               )
             })
           )}
         </div>
 
-        {/* Aviso */}
-        <div className="bg-gray-50 rounded-lg p-4 text-center">
-          <p className="text-sm text-gray-600">
-            <LightBulbIcon className="w-4 h-4 inline" /> Use o desktop para gerenciar materiais
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            (Apenas visualização no mobile)
-          </p>
-        </div>
       </div>
+
+      {/* FAB para adicionar novo material */}
+      <MobileFAB onClick={handleOpenModal} />
+
+      {/* Modal de Material */}
+      <MobileMaterialModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditingMaterial(null)
+        }}
+        onSave={handleSaveMaterial}
+        material={editingMaterial}
+        loading={createMutation.isPending || updateMutation.isPending}
+      />
     </MobileLayout>
   )
 }

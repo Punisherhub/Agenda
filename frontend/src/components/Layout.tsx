@@ -14,8 +14,9 @@ const Layout: React.FC = () => {
   }
 
   // Verificar se usuário tem permissão (ADMIN ou MANAGER)
-  // Backend retorna roles em lowercase
-  const isAdminOrManager = user.role === 'admin' || user.role === 'manager'
+  // Backend retorna roles em UPPERCASE
+  const userRole = (user.role || '').toUpperCase()
+  const isAdminOrManager = userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'SUPORTE'
 
   // Itens de menu disponíveis para todos
   const allNavItems = [
@@ -43,9 +44,11 @@ const Layout: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">
-                Agenda OnSell
-              </h1>
+              <img
+                src="/src/assets/LogoOnSellSistemas.png"
+                alt="OnSell Sistemas"
+                className="h-12 object-contain"
+              />
             </div>
 
             {/* User menu */}
@@ -104,7 +107,7 @@ const Layout: React.FC = () => {
                       {user.full_name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Estabelecimento #{user.estabelecimento_id}
+                      {user.estabelecimento_nome || `Estabelecimento #${user.estabelecimento_id}`}
                     </p>
                   </div>
                 </div>

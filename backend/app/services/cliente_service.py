@@ -205,12 +205,16 @@ class ClienteService:
         limit: int = 20
     ):
         """Listar histórico de agendamentos do cliente."""
+        from sqlalchemy.orm import joinedload
+        from app.models.agendamento import Agendamento
 
         cliente = ClienteService.get_cliente(db, cliente_id)
 
-        from app.models.agendamento import Agendamento
-
-        query = db.query(Agendamento).filter(
+        query = db.query(Agendamento).options(
+            joinedload(Agendamento.servico),
+            joinedload(Agendamento.cliente),
+            joinedload(Agendamento.vendedor)
+        ).filter(
             Agendamento.cliente_id == cliente_id
         ).order_by(Agendamento.data_inicio.desc())
 

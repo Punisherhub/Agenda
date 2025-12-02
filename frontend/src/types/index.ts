@@ -5,8 +5,9 @@ export interface User {
   email: string
   username: string
   full_name: string
-  role: 'admin' | 'manager' | 'vendedor' | 'atendente'
+  role: 'admin' | 'manager' | 'vendedor' | 'atendente' | 'suporte'
   estabelecimento_id: number | null
+  estabelecimento_nome?: string | null
   is_active: boolean
   is_verified: boolean
 }
@@ -57,7 +58,7 @@ export interface Agendamento {
   valor_servico: number
   valor_desconto: number
   valor_final: number
-  forma_pagamento: 'dinheiro' | 'cartao_debito' | 'cartao_credito' | 'pix' | 'boleto' | 'pendente'
+  forma_pagamento?: 'dinheiro' | 'cartao_debito' | 'cartao_credito' | 'pix' | 'boleto' | 'pendente'  // DEPRECATED: não mais coletado
   avaliacao_nota: number | null
   avaliacao_comentario: string | null
   cliente_id: number
@@ -95,7 +96,7 @@ export interface PaginatedResponse<T> {
 }
 
 export interface LoginRequest {
-  email: string
+  username: string
   password: string
 }
 
@@ -151,7 +152,7 @@ export interface Material {
   nome: string
   descricao: string | null
   valor_custo: number
-  unidade_medida: 'ML' | 'UNIDADE' | 'GRAMA'
+  unidade_medida: 'ML' | 'UNIDADE' | 'GRAMA' | 'CM'
   quantidade_estoque: number
   quantidade_minima: number | null
   marca: string | null
@@ -166,7 +167,7 @@ export interface MaterialCreate {
   nome: string
   descricao?: string
   valor_custo: number
-  unidade_medida: 'ML' | 'UNIDADE' | 'GRAMA'
+  unidade_medida: 'ML' | 'UNIDADE' | 'GRAMA' | 'CM'
   quantidade_estoque: number
   quantidade_minima?: number
   marca?: string

@@ -299,13 +299,15 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
         return
       }
 
-      const dataInicio = new Date(`${data.data_inicio_date}T${data.data_inicio_time}`)
-      const dataFim = new Date(`${data.data_inicio_date}T${data.data_fim_time}`)
+      // IMPORTANTE: Enviar datetime SEM timezone (naive)
+      // Backend vai assumir que é hora do Brasil e adicionar timezone correto
+      const dataInicioISO = `${data.data_inicio_date}T${data.data_inicio_time}:00`
+      const dataFimISO = `${data.data_inicio_date}T${data.data_fim_time}:00`
 
       const agendamentoData: any = {
         cliente_id: Number(data.cliente_id),
-        data_inicio: dataInicio.toISOString(),
-        data_fim: dataFim.toISOString(),
+        data_inicio: dataInicioISO,
+        data_fim: dataFimISO,
         observacoes: data.observacoes || undefined,
         valor_desconto: Number(data.valor_desconto) || 0
       }

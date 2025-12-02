@@ -1,17 +1,22 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { relatoriosApi } from '../services/api'
+import { relatoriosApi, agendamentosApi } from '../services/api'
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
-import { TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, subDays } from 'date-fns'
-import type { ReceitaDiaria, ServicoLucro, MaterialConsumo } from '../types'
+import type { ReceitaDiaria, ServicoLucro, MaterialConsumo, Agendamento } from '../types'
+import AgendamentoDetailModal from '../components/AgendamentoDetailModal'
 
 const RelatoriosPage: React.FC = () => {
   const [dataInicio, setDataInicio] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'))
   const [dataFim, setDataFim] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [page, setPage] = useState(0)
+  const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const limit = 10
 
   const { data: dashboard, isLoading } = useQuery({
     queryKey: ['dashboard-relatorios', dataInicio, dataFim],
@@ -19,6 +24,22 @@ const RelatoriosPage: React.FC = () => {
       data_inicio: dataInicio,
       data_fim: dataFim
     })
+  })
+
+  // Query para buscar histórico de agendamentos concluídos
+  const { data: agendamentosData, isLoading: isLoadingAgendamentos } = useQuery({
+    queryKey: ['agendamentos-concluidos', dataInicio, dataFim, page],
+    queryFn: async () => {
+      const result = await agendamentosApi.list({
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+        status: 'CONCLUIDO',
+        skip: page * limit,
+        limit
+      })
+      console.log('[RELATORIOS] Agendamentos data:', result)
+      return result
+    }
   })
 
   if (isLoading) {
@@ -266,6 +287,112 @@ const RelatoriosPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Histórico de Agendamentos Concluídos */}
+      <div className="card">
+        <div className="p-6 border-b">
+          <h3 className="text-lg font-semibold">Histórico de Agendamentos Concluídos</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Total: {agendamentosData?.total || 0} agendamentos
+          </p>
+        </div>
+
+        {isLoadingAgendamentos ? (
+          <div className="p-12 text-center text-gray-500">
+            Carregando histórico...
+          </div>
+        ) : !agendamentosData || !agendamentosData.agendamentos || agendamentosData.agendamentos.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+            Nenhum agendamento concluído encontrado no período selecionado
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serviço</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {agendamentosData?.agendamentos.map((agendamento: Agendamento) => (
+                    <tr key={agendamento.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {format(new Date(agendamento.data_inicio), 'dd/MM/yyyy HH:mm')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {agendamento.cliente?.nome || 'Cliente não informado'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {agendamento.servico_personalizado
+                          ? agendamento.servico_personalizado_nome
+                          : agendamento.servico?.nome || 'Serviço não informado'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                        R$ {agendamento.valor_final.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <button
+                          onClick={() => {
+                            setSelectedAgendamento(agendamento)
+                            setShowDetailModal(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-900 font-medium inline-flex items-center gap-1"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Ver Detalhes
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Paginação */}
+            <div className="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                Mostrando {page * limit + 1} - {Math.min((page + 1) * limit, agendamentosData?.total || 0)} de {agendamentosData?.total || 0}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="px-3 py-1 border rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="px-3 py-1 text-sm text-gray-700">
+                  Página {page + 1} de {Math.ceil((agendamentosData?.total || 0) / limit)}
+                </span>
+                <button
+                  onClick={() => setPage(p => p + 1)}
+                  disabled={(page + 1) * limit >= (agendamentosData?.total || 0)}
+                  className="px-3 py-1 border rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Modal de Detalhes do Agendamento */}
+      {selectedAgendamento && (
+        <AgendamentoDetailModal
+          agendamento={selectedAgendamento}
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false)
+            setSelectedAgendamento(null)
+          }}
+        />
+      )}
     </div>
   )
 }

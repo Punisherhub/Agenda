@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { clientesApi } from '../../services/api'
+import { clientesApi, servicosApi, agendamentosApi } from '../../services/api'
 import MobileLayout from '../layouts/MobileLayout'
 import MobileFAB from '../components/MobileFAB'
 import MobileModal from '../components/MobileModal'
+import MobileAgendamentoModal from '../components/MobileAgendamentoModal'
+import MobileAgendamentoDetailModal from '../components/MobileAgendamentoDetailModal'
 import {
   PhoneIcon,
   EnvelopeIcon,
@@ -12,7 +14,10 @@ import {
   ChartBarIcon,
   XMarkIcon,
   MapPinIcon,
-  IdentificationIcon
+  IdentificationIcon,
+  ClockIcon,
+  CurrencyDollarIcon,
+  WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline'
 
 const MobileClientesPage: React.FC = () => {
@@ -21,7 +26,11 @@ const MobileClientesPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isHistoricoOpen, setIsHistoricoOpen] = useState(false)
+  const [isAgendamentoModalOpen, setIsAgendamentoModalOpen] = useState(false)
+  const [isAgendamentoDetailOpen, setIsAgendamentoDetailOpen] = useState(false)
   const [editingCliente, setEditingCliente] = useState<any>(null)
+  const [clienteParaAgendar, setClienteParaAgendar] = useState<any>(null)
+  const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<any>(null)
 
   // Filtros
   const [filtros, setFiltros] = useState({
@@ -54,11 +63,27 @@ const MobileClientesPage: React.FC = () => {
   })
 
   // Buscar histórico do cliente
-  const { isLoading: loadingHistorico } = useQuery({
+  const { data: historicoData, isLoading: loadingHistorico } = useQuery({
     queryKey: ['cliente-historico', editingCliente?.id],
-    queryFn: () => clientesApi.get(editingCliente.id),
+    queryFn: () => clientesApi.getHistory(editingCliente.id),
     enabled: isHistoricoOpen && !!editingCliente
   })
+
+  // Buscar serviços para modal de agendamento
+  const { data: servicosData } = useQuery({
+    queryKey: ['servicos'],
+    queryFn: () => servicosApi.list()
+  })
+
+  // Buscar todos clientes para modal de agendamento
+  const { data: todosClientesData } = useQuery({
+    queryKey: ['clientes', 'todos'],
+    queryFn: () => clientesApi.list({ limit: 100 })
+  })
+
+  const servicos = servicosData?.servicos || []
+  const todosClientes = todosClientesData?.clientes || []
+  const agendamentosHistorico = historicoData?.agendamentos || []
 
   // Mutation criar
   const createMutation = useMutation({
@@ -79,6 +104,70 @@ const MobileClientesPage: React.FC = () => {
     }
   })
 
+  // Mutation criar agendamento
+  const createAgendamentoMutation = useMutation({
+    mutationFn: agendamentosApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
+      queryClient.invalidateQueries({ queryKey: ['cliente-historico'] })
+      setIsAgendamentoModalOpen(false)
+      setClienteParaAgendar(null)
+      alert('✅ Agendamento criado com sucesso!')
+    },
+    onError: (error: any) => {
+      const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
+      alert(`❌ Erro ao criar agendamento:\n${errorMsg}`)
+    }
+  })
+
+  // Mutation atualizar status do agendamento
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      agendamentosApi.updateStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
+      queryClient.invalidateQueries({ queryKey: ['cliente-historico'] })
+    }
+  })
+
+  // Mutation cancelar agendamento
+  const cancelAgendamentoMutation = useMutation({
+    mutationFn: agendamentosApi.cancel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
+      queryClient.invalidateQueries({ queryKey: ['cliente-historico'] })
+      setIsAgendamentoDetailOpen(false)
+      setAgendamentoSelecionado(null)
+    }
+  })
+
+  // Mutation deletar agendamento
+  const deleteAgendamentoMutation = useMutation({
+    mutationFn: agendamentosApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
+      queryClient.invalidateQueries({ queryKey: ['cliente-historico'] })
+      setIsAgendamentoDetailOpen(false)
+      setAgendamentoSelecionado(null)
+    }
+  })
+
+  // Mutation atualizar agendamento
+  const updateAgendamentoMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => agendamentosApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
+      queryClient.invalidateQueries({ queryKey: ['cliente-historico'] })
+      setIsAgendamentoModalOpen(false)
+      setAgendamentoSelecionado(null)
+      alert('✅ Agendamento atualizado com sucesso!')
+    },
+    onError: (error: any) => {
+      const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
+      alert(`❌ Erro ao atualizar agendamento:\n${errorMsg}`)
+    }
+  })
+
   const clientes = clientesData?.clientes || []
   const resultadosBusca = clientesBusca?.clientes || []
 
@@ -96,6 +185,20 @@ const MobileClientesPage: React.FC = () => {
       return ''
     } catch {
       return ''
+    }
+  }
+
+  // Formatar hora (PURE JS) - Extrai do ISO string sem conversão de timezone
+  const formatHora = (dateString: string) => {
+    try {
+      // Extrair hora do formato ISO: 2025-11-08T21:30:00-03:00 → 21:30
+      const timeMatch = dateString.match(/T(\d{2}):(\d{2})/)
+      if (timeMatch) {
+        return `${timeMatch[1]}:${timeMatch[2]}`
+      }
+      return '00:00'
+    } catch {
+      return '00:00'
     }
   }
 
@@ -147,6 +250,69 @@ const MobileClientesPage: React.FC = () => {
   const handleOpenHistorico = (cliente: any) => {
     setEditingCliente(cliente)
     setIsHistoricoOpen(true)
+  }
+
+  const handleOpenAgendamento = (cliente: any) => {
+    setClienteParaAgendar(cliente)
+    setIsAgendamentoModalOpen(true)
+  }
+
+  const handleCreateAgendamento = async (data: any) => {
+    try {
+      if (agendamentoSelecionado) {
+        // Modo edição
+        await updateAgendamentoMutation.mutateAsync({ id: agendamentoSelecionado.id, data })
+      } else {
+        // Modo criação
+        await createAgendamentoMutation.mutateAsync(data)
+      }
+    } catch (error) {
+      console.error('Erro ao salvar agendamento:', error)
+      // Erro já tratado no onError da mutation
+    }
+  }
+
+  const handleOpenAgendamentoDetail = (agendamento: any) => {
+    setAgendamentoSelecionado(agendamento)
+    setIsAgendamentoDetailOpen(true)
+  }
+
+  const handleEditAgendamento = (agendamento: any) => {
+    setAgendamentoSelecionado(agendamento)
+    setIsAgendamentoDetailOpen(false)
+    setIsAgendamentoModalOpen(true)
+  }
+
+  const handleUpdateStatus = async (id: number, status: string) => {
+    await updateStatusMutation.mutateAsync({ id, status })
+  }
+
+  const handleCancelAgendamento = async (id: number) => {
+    if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
+      await cancelAgendamentoMutation.mutateAsync(id)
+    }
+  }
+
+  const handleDeleteAgendamento = async (id: number) => {
+    if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+      await deleteAgendamentoMutation.mutateAsync(id)
+    }
+  }
+
+  const handleConcluirComMateriais = () => {
+    alert('Funcionalidade de materiais não disponível no histórico. Acesse a página de Agendamentos.')
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'AGENDADO': return 'bg-blue-100 text-blue-800'
+      case 'CONFIRMADO': return 'bg-green-100 text-green-800'
+      case 'EM_ANDAMENTO': return 'bg-yellow-100 text-yellow-800'
+      case 'CONCLUIDO': return 'bg-emerald-100 text-emerald-800'
+      case 'CANCELADO': return 'bg-red-100 text-red-800'
+      case 'NAO_COMPARECEU': return 'bg-gray-100 text-gray-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -248,7 +414,7 @@ const MobileClientesPage: React.FC = () => {
                       </div>
                       <div className="flex gap-2 mt-2">
                         <button
-                          onClick={() => alert('Agendar (em desenvolvimento)')}
+                          onClick={() => handleOpenAgendamento(cliente)}
                           className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium active:bg-green-700"
                         >
                           <CalendarIcon className="w-4 h-4 inline" /> Agendar
@@ -410,7 +576,7 @@ const MobileClientesPage: React.FC = () => {
                 {/* Ações */}
                 <div className="flex gap-2 flex-wrap">
                   <button
-                    onClick={() => alert('Agendar (em desenvolvimento)')}
+                    onClick={() => handleOpenAgendamento(cliente)}
                     className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium active:bg-green-700"
                   >
                     <CalendarIcon className="w-4 h-4 inline" /> Agendar
@@ -569,15 +735,106 @@ const MobileClientesPage: React.FC = () => {
 
               {/* Histórico de Agendamentos */}
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Agendamentos</h4>
-                <p className="text-gray-500 text-sm">
-                  Histórico de agendamentos em desenvolvimento
-                </p>
+                <h4 className="font-semibold text-gray-900 mb-3">Histórico de Agendamentos</h4>
+                {agendamentosHistorico.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center py-4">
+                    Nenhum agendamento encontrado
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {agendamentosHistorico.map((agendamento: any) => (
+                      <div
+                        key={agendamento.id}
+                        className="bg-white border border-gray-200 rounded-lg p-3 active:bg-gray-50 cursor-pointer"
+                        onClick={() => handleOpenAgendamentoDetail(agendamento)}
+                      >
+                        {/* Cabeçalho */}
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <ClockIcon className="w-4 h-4 text-gray-500" />
+                              <span className="font-bold text-blue-600">
+                                {formatHora(agendamento.data_inicio)}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {formatData(agendamento.data_inicio)}
+                              </span>
+                            </div>
+                          </div>
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(agendamento.status)}`}>
+                            {agendamento.status.replace('_', ' ')}
+                          </span>
+                        </div>
+
+                        {/* Detalhes */}
+                        <div className="space-y-1">
+                          <p className="text-sm text-gray-700 flex items-center gap-1">
+                            <WrenchScrewdriverIcon className="w-4 h-4" />
+                            {agendamento.servico?.nome || `Serviço #${agendamento.servico_id}`}
+                          </p>
+                          <p className="text-sm font-bold text-green-600 flex items-center gap-1">
+                            <CurrencyDollarIcon className="w-4 h-4" />
+                            R$ {(agendamento.valor_final || agendamento.valor_total || 0).toFixed(2)}
+                          </p>
+                          {agendamento.observacoes && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {agendamento.observacoes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Resumo */}
+                    <div className="bg-blue-50 rounded-lg p-3 mt-3">
+                      <div className="text-sm text-gray-700">
+                        <p className="font-medium">Total de agendamentos: {agendamentosHistorico.length}</p>
+                        <p className="font-medium text-green-600">
+                          Total gasto: R$ {agendamentosHistorico.reduce((sum: number, a: any) => sum + (a.valor_final || a.valor_total || 0), 0).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
         </div>
       </MobileModal>
+
+      {/* Modal de Agendamento */}
+      <MobileAgendamentoModal
+        isOpen={isAgendamentoModalOpen}
+        onClose={() => {
+          setIsAgendamentoModalOpen(false)
+          setClienteParaAgendar(null)
+          setAgendamentoSelecionado(null)
+        }}
+        onSave={handleCreateAgendamento}
+        agendamento={agendamentoSelecionado}
+        servicos={servicos}
+        clientes={todosClientes}
+        loading={createAgendamentoMutation.isPending || updateAgendamentoMutation.isPending}
+        clientePreSelecionado={clienteParaAgendar}
+      />
+
+      {/* Modal de Detalhes do Agendamento */}
+      <MobileAgendamentoDetailModal
+        isOpen={isAgendamentoDetailOpen}
+        onClose={() => {
+          setIsAgendamentoDetailOpen(false)
+          setAgendamentoSelecionado(null)
+        }}
+        agendamento={agendamentoSelecionado}
+        servicos={servicos}
+        clientes={todosClientes}
+        onEdit={handleEditAgendamento}
+        onUpdateStatus={handleUpdateStatus}
+        onCancel={handleCancelAgendamento}
+        onDelete={handleDeleteAgendamento}
+        onConcluirComMateriais={handleConcluirComMateriais}
+        loading={updateStatusMutation.isPending || cancelAgendamentoMutation.isPending || deleteAgendamentoMutation.isPending}
+      />
     </MobileLayout>
   )
 }

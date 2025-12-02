@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fidelidadeApi } from '../../services/api'
 import type { Premio, PremioCreate, ConfiguracaoFidelidadeCreate } from '../../types'
+import MobileLayout from '../layouts/MobileLayout'
 import MobileModal from '../components/MobileModal'
 
 export default function MobileFidelidadePage() {
@@ -130,12 +131,13 @@ export default function MobileFidelidadePage() {
   }
 
   return (
-    <div className="pb-20">
-      {/* Header */}
-      <div className="bg-blue-600 text-white p-4">
-        <h1 className="text-xl font-bold">Fidelidade</h1>
-        <p className="text-sm text-blue-100">Gerencie pontos e prêmios</p>
-      </div>
+    <MobileLayout>
+      <div className="p-4 space-y-4">
+        {/* Header */}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Fidelidade</h2>
+          <p className="text-sm text-gray-500">Gerencie pontos e prêmios</p>
+        </div>
 
       {/* Tabs */}
       <div className="flex border-b bg-white sticky top-0 z-10">
@@ -421,6 +423,7 @@ export default function MobileFidelidadePage() {
           </form>
         </MobileModal>
       )}
-    </div>
+      </div>
+    </MobileLayout>
   )
 }

@@ -10,6 +10,7 @@ class UserRole(enum.Enum):
     MANAGER = "manager"          # Gerente do estabelecimento
     VENDEDOR = "vendedor"        # Vendedor/Funcionário
     ATENDENTE = "atendente"      # Atendente
+    SUPORTE = "suporte"          # Suporte técnico
 
 
 class User(Base):
@@ -25,7 +26,7 @@ class User(Base):
     cpf = Column(String(14), nullable=True, unique=True)
     telefone = Column(String(20), nullable=True)
     cargo = Column(String(100), nullable=True)
-    role = Column(Enum(UserRole), default=UserRole.VENDEDOR)
+    role = Column(String(20), default="vendedor")  # Armazenar como string ao invés de enum
 
     # Status e configurações
     is_active = Column(Boolean, default=True)

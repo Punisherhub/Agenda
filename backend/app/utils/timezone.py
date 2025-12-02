@@ -17,8 +17,15 @@ def get_brazil_now() -> datetime:
 def to_brazil_tz(dt: datetime) -> datetime:
     """Converte datetime para timezone do Brasil"""
     if dt.tzinfo is None:
-        # Se não tem timezone, assume UTC e converte
-        dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+        # Se não tem timezone, assume que JÁ É do Brasil (não UTC)
+        # Isso porque agora salvamos tudo com timezone do Brasil no banco
+        return dt.replace(tzinfo=BRAZIL_TZ)
+
+    # Se já tem timezone do Brasil, retornar como está
+    if dt.tzinfo == BRAZIL_TZ or str(dt.tzinfo) == 'America/Sao_Paulo':
+        return dt
+
+    # Caso contrário, converter para Brasil
     return dt.astimezone(BRAZIL_TZ)
 
 

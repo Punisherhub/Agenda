@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { agendamentosApi, relatoriosApi, materiaisApi } from '../services/api'
 import { format, subDays } from 'date-fns'
+import { formatBrazilTime } from '../utils/timezone'
 import { CalendarPlus, Search, Package, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react'
 
 const DashboardPage: React.FC = () => {
@@ -167,8 +168,8 @@ const DashboardPage: React.FC = () => {
                       {agendamento.servico?.nome || `Serviço #${agendamento.servico_id}`}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {format(new Date(agendamento.data_inicio), 'HH:mm')} às{' '}
-                      {format(new Date(agendamento.data_fim), 'HH:mm')}
+                      {formatBrazilTime(agendamento.data_inicio)} às{' '}
+                      {formatBrazilTime(agendamento.data_fim)}
                     </p>
                   </div>
                   <div>

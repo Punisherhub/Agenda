@@ -9,6 +9,8 @@ import ServicosPage from './pages/ServicosPage'
 import MateriaisPage from './pages/MateriaisPage'
 import RelatoriosPage from './pages/RelatoriosPage'
 import FidelidadePage from './pages/FidelidadePage'
+import SuportePage from './pages/SuportePage'
+import SuporteLoginPage from './pages/SuporteLoginPage'
 
 // Components
 import Layout from './components/Layout'
@@ -18,8 +20,12 @@ import RoleProtectedRoute from './components/RoleProtectedRoute'
 function App() {
   return (
     <Routes>
-      {/* Rota pública */}
+      {/* Rotas públicas */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/suporte/login" element={<SuporteLoginPage />} />
+
+      {/* Rota de suporte (suporte-only, não listada nos menus) */}
+      <Route path="/suporte" element={<SuportePage />} />
 
       {/* Rotas protegidas */}
       <Route path="/" element={

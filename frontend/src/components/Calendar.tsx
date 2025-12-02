@@ -7,6 +7,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { Agendamento, Servico, Cliente } from '../types'
+import { formatBrazilTime } from '../utils/timezone'
 import '../styles/calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 
@@ -64,11 +65,27 @@ const Calendar: React.FC<CalendarProps> = ({
       const servico = servicos.find(s => s.id === agendamento.servico_id)
       const cliente = clientes.find(c => c.id === agendamento.cliente_id) || agendamento.cliente
 
+      // DEBUG: Log para verificar conversão de datas
+      const startDate = new Date(agendamento.data_inicio)
+      const endDate = new Date(agendamento.data_fim)
+
+      if (startDate.getHours() >= 21) {
+        console.log('🔍 [CALENDAR DEBUG] Agendamento após 21h:', {
+          id: agendamento.id,
+          data_inicio_raw: agendamento.data_inicio,
+          data_fim_raw: agendamento.data_fim,
+          start_Date_object: startDate,
+          start_getHours: startDate.getHours(),
+          end_Date_object: endDate,
+          end_getHours: endDate.getHours()
+        })
+      }
+
       return {
         id: agendamento.id,
         title: `${cliente?.nome || 'Cliente'} - ${servico?.nome || 'Serviço'}`,
-        start: new Date(agendamento.data_inicio),
-        end: new Date(agendamento.data_fim),
+        start: startDate,
+        end: endDate,
         resource: agendamento
       }
     })
@@ -202,7 +219,7 @@ const Calendar: React.FC<CalendarProps> = ({
         </div>
         <div className="flex items-center text-xs opacity-90 mt-1">
           <Clock className="w-3 h-3 mr-1" />
-          {format(event.start, 'HH:mm')} - {format(event.end, 'HH:mm')}
+          {formatBrazilTime(event.resource.data_inicio)} - {formatBrazilTime(event.resource.data_fim)}
         </div>
         {servico && (
           <div className="text-xs opacity-90 truncate">
@@ -222,7 +239,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const MonthEvent = ({ event }: { event: CalendarEvent }) => {
     return (
       <div className="text-xs truncate px-1 py-0.5">
-        {format(event.start, 'HH:mm')}
+        {formatBrazilTime(event.resource.data_inicio)}
       </div>
     )
   }

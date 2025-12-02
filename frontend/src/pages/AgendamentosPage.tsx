@@ -7,7 +7,7 @@ import Calendar from '../components/Calendar'
 import AgendamentoModal from '../components/AgendamentoModal'
 import AgendamentoDetailModal from '../components/AgendamentoDetailModal'
 import { Calendar as CalendarIcon, List } from 'lucide-react'
-import { toBrazilISO } from '../utils/timezone'
+import { toBrazilISO, formatBrazilDate, formatBrazilTime } from '../utils/timezone'
 import { Agendamento, AgendamentoCreate } from '../types'
 
 const AgendamentosPage: React.FC = () => {
@@ -160,6 +160,20 @@ const AgendamentosPage: React.FC = () => {
     }
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => agendamentosApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-relatorios'] })
+      setShowAgendamentoModal(false)
+      setSelectedAgendamento(null)
+    },
+    onError: (error: any) => {
+      console.error('Erro ao atualizar agendamento:', error)
+      alert(`Erro ao atualizar agendamento: ${error.response?.data?.detail || error.message}`)
+    }
+  })
+
   // Handlers
   const handleSlotSelect = (slotInfo: { start: Date; end: Date; slots: Date[] }) => {
     setSelectedSlot({ start: slotInfo.start, end: slotInfo.end })
@@ -173,7 +187,13 @@ const AgendamentosPage: React.FC = () => {
   }
 
   const handleSaveAgendamento = async (data: AgendamentoCreate) => {
-    await createMutation.mutateAsync(data)
+    // Se estiver editando, atualizar o agendamento existente
+    if (selectedAgendamento) {
+      console.log('Atualizando agendamento existente')
+      await updateMutation.mutateAsync({ id: selectedAgendamento.id, data })
+    } else {
+      await createMutation.mutateAsync(data)
+    }
   }
 
   const handleEditAgendamento = (agendamento: Agendamento) => {
@@ -547,11 +567,11 @@ const AgendamentosPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {format(new Date(agendamento.data_inicio), 'dd/MM/yyyy')}
+                        {formatBrazilDate(agendamento.data_inicio)}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {format(new Date(agendamento.data_inicio), 'HH:mm')} às{' '}
-                        {format(new Date(agendamento.data_fim), 'HH:mm')}
+                        {formatBrazilTime(agendamento.data_inicio)} às{' '}
+                        {formatBrazilTime(agendamento.data_fim)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

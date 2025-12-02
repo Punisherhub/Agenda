@@ -12,11 +12,11 @@ router = APIRouter()
 
 
 def check_manager_permission(current_user: User):
-    """Verificar se o usuário tem permissão de gerente ou superior"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+    """Verificar se o usuário tem permissão de gerente, administrador ou suporte"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPORTE, "suporte"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso restrito a gerentes e administradores"
+            detail="Acesso restrito a gerentes, administradores e suporte"
         )
 
 
@@ -29,7 +29,18 @@ async def listar_estabelecimentos(
     current_user: User = Depends(get_current_active_user)
 ):
     """Listar estabelecimentos"""
-    return {"estabelecimentos": [], "total": 0}
+    from app.models.estabelecimento import Estabelecimento
+    from sqlalchemy.orm import joinedload
+
+    query = db.query(Estabelecimento).options(joinedload(Estabelecimento.empresa))  # Removido filtro is_active para mostrar todos
+
+    if empresa_id:
+        query = query.filter(Estabelecimento.empresa_id == empresa_id)
+
+    total = query.count()
+    estabelecimentos = query.offset(skip).limit(limit).all()
+
+    return {"estabelecimentos": estabelecimentos, "total": total}
 
 
 @router.post("/", response_model=EstabelecimentoResponse, status_code=status.HTTP_201_CREATED)
@@ -40,7 +51,24 @@ async def criar_estabelecimento(
 ):
     """Criar novo estabelecimento"""
     check_manager_permission(current_user)
-    return {"message": "Criar estabelecimento - to be implemented"}
+
+    from app.models.estabelecimento import Estabelecimento
+    from app.models.empresa import Empresa
+
+    # Verificar se empresa existe
+    empresa = db.query(Empresa).filter(Empresa.id == estabelecimento_data.empresa_id).first()
+    if not empresa:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Empresa não encontrada"
+        )
+
+    novo_estabelecimento = Estabelecimento(**estabelecimento_data.model_dump())
+    db.add(novo_estabelecimento)
+    db.commit()
+    db.refresh(novo_estabelecimento)
+
+    return novo_estabelecimento
 
 
 @router.get("/{estabelecimento_id}", response_model=EstabelecimentoResponse)
@@ -50,7 +78,17 @@ async def obter_estabelecimento(
     current_user: User = Depends(get_current_active_user)
 ):
     """Obter estabelecimento por ID"""
-    return {"message": f"Get estabelecimento {estabelecimento_id} - to be implemented"}
+    from app.models.estabelecimento import Estabelecimento
+    from sqlalchemy.orm import joinedload
+
+    estabelecimento = db.query(Estabelecimento).options(joinedload(Estabelecimento.empresa)).filter(Estabelecimento.id == estabelecimento_id).first()
+    if not estabelecimento:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Estabelecimento não encontrado"
+        )
+
+    return estabelecimento
 
 
 @router.put("/{estabelecimento_id}", response_model=EstabelecimentoResponse)
@@ -62,7 +100,24 @@ async def atualizar_estabelecimento(
 ):
     """Atualizar estabelecimento"""
     check_manager_permission(current_user)
-    return {"message": f"Update estabelecimento {estabelecimento_id} - to be implemented"}
+
+    from app.models.estabelecimento import Estabelecimento
+
+    estabelecimento = db.query(Estabelecimento).filter(Estabelecimento.id == estabelecimento_id).first()
+    if not estabelecimento:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Estabelecimento não encontrado"
+        )
+
+    update_data = estabelecimento_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(estabelecimento, field, value)
+
+    db.commit()
+    db.refresh(estabelecimento)
+
+    return estabelecimento
 
 
 @router.delete("/{estabelecimento_id}")
@@ -73,7 +128,20 @@ async def desativar_estabelecimento(
 ):
     """Desativar estabelecimento"""
     check_manager_permission(current_user)
-    return {"message": f"Estabelecimento {estabelecimento_id} desativado"}
+
+    from app.models.estabelecimento import Estabelecimento
+
+    estabelecimento = db.query(Estabelecimento).filter(Estabelecimento.id == estabelecimento_id).first()
+    if not estabelecimento:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Estabelecimento não encontrado"
+        )
+
+    estabelecimento.is_active = False
+    db.commit()
+
+    return {"message": f"Estabelecimento {estabelecimento_id} desativado com sucesso"}
 
 
 @router.get("/{estabelecimento_id}/horarios")

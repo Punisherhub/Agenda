@@ -36,6 +36,51 @@ class AgendamentoCreate(BaseModel):
     servico_personalizado_descricao: Optional[str] = None
     valor_servico_personalizado: Optional[Decimal] = None  # Preço do serviço personalizado
 
+    @field_validator('data_inicio', 'data_fim', mode='before')
+    @classmethod
+    def parse_datetime_brasil(cls, v: Optional[str | datetime]) -> Optional[datetime]:
+        """Parsear datetime e SEMPRE assumir que é hora do Brasil"""
+        if v is None:
+            return None
+
+        from zoneinfo import ZoneInfo
+        from datetime import datetime as dt
+
+        # Se já é datetime, verificar timezone
+        if isinstance(v, datetime):
+            print(f"[VALIDATOR BEFORE] Datetime object recebido: {v}, tzinfo: {v.tzinfo}")
+            # Se tem timezone, converter para Brasil
+            if v.tzinfo is not None:
+                # Pegar apenas os componentes de data/hora (ignorar timezone que veio)
+                v_naive = v.replace(tzinfo=None)
+                print(f"[VALIDATOR BEFORE] Removido timezone, ficou: {v_naive}")
+                # Adicionar timezone do Brasil
+                v_brasil = v_naive.replace(tzinfo=ZoneInfo("America/Sao_Paulo"))
+                print(f"[VALIDATOR BEFORE] Adicionado timezone Brasil: {v_brasil}")
+                return v_brasil
+            else:
+                # Se não tem timezone, adicionar Brasil
+                v_brasil = v.replace(tzinfo=ZoneInfo("America/Sao_Paulo"))
+                print(f"[VALIDATOR BEFORE] Sem timezone, adicionado Brasil: {v_brasil}")
+                return v_brasil
+
+        # Se é string, parsear como naive e adicionar Brasil
+        if isinstance(v, str):
+            print(f"[VALIDATOR BEFORE] String recebida: {v}")
+            # Remover timezone se tiver na string
+            if '+' in v or v.endswith('Z'):
+                v = v.split('+')[0].split('Z')[0]
+                print(f"[VALIDATOR BEFORE] Removido timezone da string: {v}")
+
+            # Parsear como naive
+            v_naive = dt.fromisoformat(v)
+            # Adicionar timezone Brasil
+            v_brasil = v_naive.replace(tzinfo=ZoneInfo("America/Sao_Paulo"))
+            print(f"[VALIDATOR BEFORE] Parseado e adicionado Brasil: {v_brasil}")
+            return v_brasil
+
+        return v
+
 
 class AgendamentoUpdate(BaseModel):
     data_inicio: Optional[datetime] = None
@@ -62,7 +107,7 @@ class AgendamentoResponse(BaseModel):
     valor_servico: Decimal
     valor_desconto: Decimal
     valor_final: Decimal
-    forma_pagamento: FormaPagamento
+    forma_pagamento: Optional[FormaPagamento] = None  # DEPRECATED: não mais coletado
     avaliacao_nota: Optional[int] = None
     avaliacao_comentario: Optional[str] = None
     cliente_id: int
@@ -81,13 +126,24 @@ class AgendamentoResponse(BaseModel):
     servico_personalizado_descricao: Optional[str] = None
 
     @field_serializer('data_agendamento', 'data_inicio', 'data_fim', 'created_at', 'updated_at', 'canceled_at', 'completed_at', 'deleted_at')
-    def serialize_datetime(self, dt: Optional[datetime], _info):
-        '''Converter datetime de UTC para timezone do Brasil antes de serializar'''
+    def serialize_datetime_brasil(self, dt: Optional[datetime], _info) -> Optional[str]:
+        """Serializar datetime mantendo timezone do Brasil"""
         if dt is None:
             return None
-        # Importar aqui para evitar circular import
-        from app.utils.timezone import to_brazil_tz
-        return to_brazil_tz(dt)
+
+        from zoneinfo import ZoneInfo
+
+        # Se já tem timezone do Brasil, retornar ISO string com timezone
+        if dt.tzinfo is not None:
+            # Garantir que está no timezone do Brasil
+            if str(dt.tzinfo) != 'America/Sao_Paulo':
+                dt = dt.astimezone(ZoneInfo('America/Sao_Paulo'))
+            # Retornar ISO string COM timezone (não UTC)
+            return dt.isoformat()
+
+        # Se não tem timezone, adicionar Brasil e retornar
+        dt_brasil = dt.replace(tzinfo=ZoneInfo('America/Sao_Paulo'))
+        return dt_brasil.isoformat()
 
     class Config:
         from_attributes = True

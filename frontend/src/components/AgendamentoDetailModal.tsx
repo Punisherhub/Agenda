@@ -11,11 +11,11 @@ interface AgendamentoDetailModalProps {
   isOpen: boolean
   onClose: () => void
   agendamento: Agendamento | null
-  servicos: Servico[]
-  clientes: Cliente[]
-  onEdit: (agendamento: Agendamento) => void
-  onUpdateStatus: (id: number, status: string) => Promise<void>
-  onCancel: (id: number) => Promise<void>
+  servicos?: Servico[]
+  clientes?: Cliente[]
+  onEdit?: (agendamento: Agendamento) => void
+  onUpdateStatus?: (id: number, status: string) => Promise<void>
+  onCancel?: (id: number) => Promise<void>
   onDelete?: (id: number) => Promise<void>
   loading?: boolean
 }
@@ -44,8 +44,8 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
 
   if (!isOpen || !agendamento) return null
 
-  const servico = servicos.find(s => s.id === agendamento.servico_id) || agendamento.servico
-  const cliente = clientes.find(c => c.id === agendamento.cliente_id) || agendamento.cliente
+  const servico = servicos?.find(s => s.id === agendamento.servico_id) || agendamento.servico
+  const cliente = clientes?.find(c => c.id === agendamento.cliente_id) || agendamento.cliente
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -95,6 +95,7 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
   }
 
   const handleUpdateStatus = async (newStatus: string) => {
+    if (!onUpdateStatus) return
     setUpdating(true)
     try {
       console.log('Atualizando status para:', newStatus)
@@ -111,6 +112,7 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
   }
 
   const handleCancel = async () => {
+    if (!onCancel) return
     if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
       setUpdating(true)
       try {
@@ -183,8 +185,8 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
     }
   }
 
-  const canEdit = !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status)
-  const canCancel = !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status)
+  const canEdit = onEdit !== undefined && !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status)
+  const canCancel = onCancel !== undefined && !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status)
   const canDelete = onDelete !== undefined // Sempre pode deletar se a função estiver disponível
   const canReativar = agendamento.status === 'NAO_COMPARECEU'
 
@@ -216,7 +218,7 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
               </span>
             </div>
             <div className="flex space-x-2">
-              {canEdit && (
+              {canEdit && onEdit && (
                 <button
                   onClick={() => onEdit(agendamento)}
                   className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -358,16 +360,6 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
                 </span>
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-yellow-200">
-              <div className="text-sm">
-                <span className="font-medium text-gray-700">Forma de Pagamento:</span>{' '}
-                {agendamento.forma_pagamento === 'pendente' ? (
-                  <span className="text-orange-600">Pendente</span>
-                ) : (
-                  <span className="capitalize">{agendamento.forma_pagamento.replace('_', ' ')}</span>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Observações */}
@@ -420,7 +412,7 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
           )}
 
           {/* Ações por Status */}
-          {!['CONCLUIDO', 'CANCELADO'].includes(agendamento.status) && (
+          {onUpdateStatus && !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status) && (
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-3">Ações Disponíveis</h3>
               <div className="flex flex-wrap gap-2">

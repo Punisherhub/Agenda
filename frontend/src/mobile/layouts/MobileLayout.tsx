@@ -40,7 +40,11 @@ const MobileLayoutTailwind: React.FC<MobileLayoutTailwindProps> = ({ children })
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-gray-900">Agenda OnSell</h1>
+          <img
+            src="/src/assets/LogoOnSellSistemas.png"
+            alt="OnSell Sistemas"
+            className="h-8 object-contain"
+          />
           <button
             onClick={handleLogout}
             className="p-2 active:bg-gray-100 rounded-full"

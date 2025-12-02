@@ -66,7 +66,6 @@ async def listar_agendamentos(
             "valor_servico": ag.valor_servico,
             "valor_desconto": ag.valor_desconto,
             "valor_final": ag.valor_final,
-            "forma_pagamento": ag.forma_pagamento,
             "avaliacao_nota": ag.avaliacao_nota,
             "avaliacao_comentario": ag.avaliacao_comentario,
             "cliente_id": ag.cliente_id,

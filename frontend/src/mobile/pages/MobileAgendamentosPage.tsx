@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { agendamentosApi, servicosApi, clientesApi } from '../../services/api'
+import { agendamentosApi, servicosApi, clientesApi, materiaisApi } from '../../services/api'
+import { Agendamento } from '../../types'
 import MobileLayout from '../layouts/MobileLayout'
 import MobileFAB from '../components/MobileFAB'
 import MobileAgendamentoModal from '../components/MobileAgendamentoModal'
+import MobileAgendamentoDetailModal from '../components/MobileAgendamentoDetailModal'
+import MobileConsumoMaterialModal from '../components/MobileConsumoMaterialModal'
 import MobileErrorBoundary from '../components/MobileErrorBoundary'
 import {
   ChevronLeftIcon,
@@ -29,6 +32,10 @@ const MobileAgendamentosPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(getDataHoje())
   const [showFilters, setShowFilters] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [isConsumoModalOpen, setIsConsumoModalOpen] = useState(false)
+  const [selectedAgendamento, setSelectedAgendamento] = useState<Agendamento | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
 
   // Filtros
   const [filtros, setFiltros] = useState({
@@ -41,7 +48,7 @@ const MobileAgendamentosPage: React.FC = () => {
   // Buscar agendamentos
   const { data: agendamentosData, isLoading } = useQuery({
     queryKey: ['agendamentos', filtros, selectedDate],
-    queryFn: () => {
+    queryFn: async () => {
       const params: any = {}
       if (filtros.data_inicio) params.data_inicio = filtros.data_inicio
       else if (!filtros.data_fim) params.data_inicio = selectedDate
@@ -51,7 +58,8 @@ const MobileAgendamentosPage: React.FC = () => {
 
       if (filtros.status) params.status = filtros.status
 
-      return agendamentosApi.list(params)
+      const result = await agendamentosApi.list(params)
+      return result
     }
   })
 
@@ -95,7 +103,6 @@ const MobileAgendamentosPage: React.FC = () => {
       alert('✅ Agendamento criado com sucesso!')
     },
     onError: (error: any) => {
-      console.error('Erro ao criar agendamento:', error)
       const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
       alert(`❌ Erro ao criar agendamento:\n${errorMsg}`)
     }
@@ -117,6 +124,33 @@ const MobileAgendamentosPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
     }
   })
+
+  // Mutation deletar
+  const deleteMutation = useMutation({
+    mutationFn: agendamentosApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
+    }
+  })
+
+  // Mutation atualizar agendamento
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => agendamentosApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
+      queryClient.invalidateQueries({ queryKey: ['agendamentos-calendario'] })
+      setIsModalOpen(false)
+      setIsEditMode(false)
+      setSelectedAgendamento(null)
+      alert('✅ Agendamento atualizado com sucesso!')
+    },
+    onError: (error: any) => {
+      console.error('Erro ao atualizar agendamento:', error)
+      const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
+      alert(`❌ Erro ao atualizar agendamento:\n${errorMsg}`)
+    }
+  })
+
 
   // Formatar hora (PURE JS) - Extrai do ISO string sem conversão de timezone
   const formatHora = (dateString: string) => {
@@ -189,14 +223,74 @@ const MobileAgendamentosPage: React.FC = () => {
     }
   }
 
-  // Handler para criar agendamento
+  // Handler para criar/atualizar agendamento
   const handleCreateAgendamento = async (data: any) => {
     try {
-      console.log('Criando agendamento com dados:', data)
-      await createMutation.mutateAsync(data)
+      console.log('=== DEBUG AGENDAMENTO ===')
+      console.log('isEditMode:', isEditMode)
+      console.log('selectedAgendamento:', selectedAgendamento)
+      console.log('Data recebida:', data)
+
+      if (isEditMode && selectedAgendamento) {
+        console.log('🔄 MODO EDICAO: Atualizando agendamento ID:', selectedAgendamento.id)
+        console.log('Dados para UPDATE:', data)
+        await updateMutation.mutateAsync({ id: selectedAgendamento.id, data })
+      } else {
+        console.log('➕ MODO CRIACAO: Criando novo agendamento')
+        console.log('Dados para CREATE:', data)
+        await createMutation.mutateAsync(data)
+      }
     } catch (error) {
-      console.error('Erro ao criar agendamento:', error)
+      console.error('❌ Erro ao salvar agendamento:', error)
       // Erro já tratado no onError da mutation
+    }
+  }
+
+  // Handler para deletar
+  const handleDelete = async (id: number) => {
+    await deleteMutation.mutateAsync(id)
+  }
+
+  // Handler para editar
+  const handleEdit = (agendamento: Agendamento) => {
+    setSelectedAgendamento(agendamento)
+    setIsEditMode(true)
+    setIsDetailModalOpen(false)
+    setIsModalOpen(true)
+  }
+
+  // Handler para abrir modal de detalhes
+  const handleOpenDetail = (agendamento: any) => {
+    setSelectedAgendamento(agendamento)
+    setIsDetailModalOpen(true)
+  }
+
+  // Handler para concluir com materiais
+  const handleConcluirComMateriais = (agendamento: Agendamento) => {
+    setSelectedAgendamento(agendamento)
+    setIsDetailModalOpen(false)
+    setIsConsumoModalOpen(true)
+  }
+
+  // Handler para salvar consumo de materiais
+  const handleSalvarConsumo = async (consumosData: any[]) => {
+    if (!selectedAgendamento) return
+
+    try {
+      // Registrar consumo de materiais
+      if (consumosData.length > 0) {
+        await materiaisApi.registrarConsumo(selectedAgendamento.id, consumosData)
+      }
+
+      // Atualizar status para CONCLUIDO
+      await handleUpdateStatus(selectedAgendamento.id, 'CONCLUIDO')
+
+      setIsConsumoModalOpen(false)
+      setSelectedAgendamento(null)
+      alert('✅ Agendamento concluído com sucesso!')
+    } catch (error) {
+      console.error('Erro ao registrar consumo:', error)
+      throw error
     }
   }
 
@@ -227,8 +321,10 @@ const MobileAgendamentosPage: React.FC = () => {
 
   const hasActiveFilters = filtros.data_inicio || filtros.data_fim || filtros.status || filtros.cliente_nome
 
-  // Handler para abrir modal
+  // Handler para abrir modal de criação
   const handleOpenModal = () => {
+    setSelectedAgendamento(null)
+    setIsEditMode(false)
     setIsModalOpen(true)
   }
 
@@ -363,6 +459,7 @@ const MobileAgendamentosPage: React.FC = () => {
               <div
                 key={agendamento.id}
                 className="bg-white rounded-lg shadow-sm p-4 space-y-3"
+                onClick={() => handleOpenDetail(agendamento)}
               >
                 {/* Cabeçalho */}
                 <div className="flex items-start justify-between">
@@ -407,96 +504,16 @@ const MobileAgendamentosPage: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Ações Contextuais por Status */}
-                {agendamento.status === 'AGENDADO' && (
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => handleUpdateStatus(agendamento.id, 'CONFIRMADO')}
-                      disabled={updateStatusMutation.isPending}
-                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium active:bg-green-700 disabled:bg-gray-400"
-                    >
-                      <CheckIcon className="w-4 h-4 inline" /> Confirmar
-                    </button>
-                    <button
-                      onClick={() => handleUpdateStatus(agendamento.id, 'NAO_COMPARECEU')}
-                      disabled={updateStatusMutation.isPending}
-                      className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium active:bg-gray-700 disabled:bg-gray-400"
-                    >
-                      ✗ Não Compareceu
-                    </button>
-                    <button
-                      onClick={() => handleCancel(agendamento.id)}
-                      disabled={cancelMutation.isPending}
-                      className="w-full px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium active:bg-red-700 disabled:bg-gray-400"
-                    >
-                      🚫 Cancelar
-                    </button>
-                  </div>
-                )}
-
-                {agendamento.status === 'CONFIRMADO' && (
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => handleUpdateStatus(agendamento.id, 'EM_ANDAMENTO')}
-                      disabled={updateStatusMutation.isPending}
-                      className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium active:bg-blue-700 disabled:bg-gray-400"
-                    >
-                      <PlayIcon className="w-4 h-4 inline" /> Iniciar
-                    </button>
-                    <button
-                      onClick={() => handleUpdateStatus(agendamento.id, 'NAO_COMPARECEU')}
-                      disabled={updateStatusMutation.isPending}
-                      className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium active:bg-gray-700 disabled:bg-gray-400"
-                    >
-                      ✗ Não Compareceu
-                    </button>
-                    <button
-                      onClick={() => handleCancel(agendamento.id)}
-                      disabled={cancelMutation.isPending}
-                      className="w-full px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium active:bg-red-700 disabled:bg-gray-400"
-                    >
-                      🚫 Cancelar
-                    </button>
-                  </div>
-                )}
-
-                {agendamento.status === 'EM_ANDAMENTO' && (
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => handleUpdateStatus(agendamento.id, 'CONCLUIDO')}
-                      disabled={updateStatusMutation.isPending}
-                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium active:bg-green-700 disabled:bg-gray-400"
-                    >
-                      <CheckIcon className="w-4 h-4 inline" /> Finalizar
-                    </button>
-                    <button
-                      onClick={() => handleCancel(agendamento.id)}
-                      disabled={cancelMutation.isPending}
-                      className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium active:bg-red-700 disabled:bg-gray-400"
-                    >
-                      🚫 Cancelar
-                    </button>
-                  </div>
-                )}
-
-                {agendamento.status === 'NAO_COMPARECEU' && (
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => handleUpdateStatus(agendamento.id, 'CONFIRMADO')}
-                      disabled={updateStatusMutation.isPending}
-                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium active:bg-green-700 disabled:bg-gray-400"
-                    >
-                      🔄 Reagendar
-                    </button>
-                    <button
-                      onClick={() => handleCancel(agendamento.id)}
-                      disabled={cancelMutation.isPending}
-                      className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium active:bg-red-700 disabled:bg-gray-400"
-                    >
-                      🚫 Cancelar
-                    </button>
-                  </div>
-                )}
+                {/* Botão de Ver Detalhes */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleOpenDetail(agendamento)
+                  }}
+                  className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium active:bg-blue-700"
+                >
+                  👁️ Ver Detalhes e Ações
+                </button>
               </div>
             ))
           )}
@@ -526,14 +543,47 @@ const MobileAgendamentosPage: React.FC = () => {
       {/* FAB */}
       <MobileFAB onClick={handleOpenModal} />
 
-      {/* Modal de Criação de Agendamento */}
+      {/* Modal de Criação/Edição de Agendamento */}
       <MobileAgendamentoModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false)
+          setIsEditMode(false)
+          setSelectedAgendamento(null)
+        }}
         onSave={handleCreateAgendamento}
+        agendamento={isEditMode ? selectedAgendamento : null}
         servicos={servicos}
         clientes={clientes}
-        loading={createMutation.isPending}
+        loading={createMutation.isPending || updateMutation.isPending}
+      />
+
+      {/* Modal de Detalhes do Agendamento */}
+      <MobileAgendamentoDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false)
+          setSelectedAgendamento(null)
+        }}
+        agendamento={selectedAgendamento}
+        servicos={servicos}
+        clientes={clientes}
+        onEdit={handleEdit}
+        onUpdateStatus={handleUpdateStatus}
+        onCancel={handleCancel}
+        onDelete={handleDelete}
+        onConcluirComMateriais={handleConcluirComMateriais}
+        loading={updateStatusMutation.isPending || cancelMutation.isPending || deleteMutation.isPending}
+      />
+
+      {/* Modal de Consumo de Materiais */}
+      <MobileConsumoMaterialModal
+        isOpen={isConsumoModalOpen}
+        onClose={() => {
+          setIsConsumoModalOpen(false)
+          setSelectedAgendamento(null)
+        }}
+        onSave={handleSalvarConsumo}
       />
     </MobileLayout>
     </MobileErrorBoundary>

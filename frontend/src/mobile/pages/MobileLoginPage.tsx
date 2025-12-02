@@ -6,7 +6,7 @@ import '../styles/mobile.css'
 
 const MobileLoginPage: React.FC = () => {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -22,7 +22,7 @@ const MobileLoginPage: React.FC = () => {
     },
     onError: (error) => {
       console.error('Login error:', error)
-      setError('Email ou senha inválidos')
+      setError('Username ou senha inválidos')
     },
   })
 
@@ -30,24 +30,24 @@ const MobileLoginPage: React.FC = () => {
     e.preventDefault()
     setError('')
 
-    if (!email || !password) {
+    if (!username || !password) {
       setError('Preencha todos os campos')
       return
     }
 
-    loginMutation.mutate({ email, password })
+    loginMutation.mutate({ username, password })
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-grey-500 to-grey-700 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg text-4xl">
-            📱
-          </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Agenda OnSell</h1>
-          <p className="text-blue-100">Sistema de Agendamento</p>
+          <img
+            src="/src/assets/SAS.png"
+            alt="Logo"
+            className="w-48 h-48 mx-auto mb-4 object-contain"
+          />
         </div>
 
         {/* Login Form */}
@@ -63,18 +63,18 @@ const MobileLoginPage: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
+            {/* Username */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                Username
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="mobile-input"
-                placeholder="seu@email.com"
-                autoComplete="email"
+                placeholder="Seu username"
+                autoComplete="username"
                 autoCapitalize="none"
               />
             </div>
@@ -118,23 +118,11 @@ const MobileLoginPage: React.FC = () => {
               )}
             </button>
           </form>
-
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-600 mb-2 font-medium">
-              Credenciais de teste:
-            </p>
-            <div className="space-y-1 text-xs text-gray-500">
-              <p><strong>Admin:</strong> admin@barbeariamoderna.com</p>
-              <p><strong>Vendedor:</strong> carlos@barbeariamoderna.com</p>
-              <p className="mt-1"><strong>Senha:</strong> 123456</p>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}
         <p className="text-center text-white text-sm mt-6 opacity-90">
-          © 2025 Agenda OnSell
+          © 2025 SAS
         </p>
       </div>
     </div>
