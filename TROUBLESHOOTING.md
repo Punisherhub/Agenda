@@ -15,14 +15,39 @@ Caracteres especiais mal codificados em arquivos Python (acentuação).
 ### ✅ Solução Aplicada
 1. Corrigido encoding em `backend/app/schemas/__init__.py`
 2. Removido caractere especial "ç" do comentário (linha 22)
-3. Adicionado `backend/.python-version` com versão correta
-4. Adicionado `backend/nixpacks.toml` para configuração explícita
-5. Adicionado `pytz` ao `requirements.txt`
+3. Adicionado `pytz` ao `requirements.txt`
 
 ### Prevenção
 - **Sempre use comentários sem acentuação em arquivos Python**
 - Use apenas ASCII em comentários quando possível
 - Se precisar usar acentos, garanta que o arquivo está em UTF-8
+
+---
+
+## ❌ Problema: "pip: command not found" durante build
+
+### Sintoma
+```
+stage-0 RUN pip install -r requirements.txt
+/bin/bash: line 1: pip: command not found
+```
+
+### Causa
+Configuração customizada de Nixpacks pode interferir com auto-detecção do Python.
+
+### ✅ Solução Aplicada
+1. Removidos arquivos de configuração customizada:
+   - `backend/nixpacks.toml`
+   - `backend/runtime.txt`
+   - `backend/.python-version`
+   - `frontend/nixpacks.toml`
+2. Mantida apenas configuração mínima em `railway.json`
+3. Railway/Nixpacks agora detecta automaticamente Python a partir de `requirements.txt`
+
+### Prevenção
+- **Deixe Nixpacks auto-detectar quando possível**
+- Só adicione configuração customizada se realmente necessário
+- `requirements.txt` é suficiente para Railway detectar projeto Python
 
 ---
 
