@@ -18,6 +18,10 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0',
     port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+    allowedHosts: [
+      'agenda-onsell.up.railway.app',
+      '.railway.app', // Permite qualquer subdomínio railway.app
+    ],
   },
   build: {
     outDir: 'dist',
