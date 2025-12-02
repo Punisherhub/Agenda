@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { authApi } from '../../services/api'
+import logoSAS from '../../assets/SAS.png'
 import '../styles/mobile.css'
 
 const MobileLoginPage: React.FC = () => {
@@ -44,7 +45,7 @@ const MobileLoginPage: React.FC = () => {
         {/* Logo */}
         <div className="text-center mb-8">
           <img
-            src="/src/assets/SAS.png"
+            src={logoSAS}
             alt="Logo"
             className="w-48 h-48 mx-auto mb-4 object-contain"
           />

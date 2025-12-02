@@ -1,6 +1,7 @@
 import React from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { Calendar, Users, LogOut, User, Home, Briefcase, Package, BarChart3, Gift } from 'lucide-react'
+import logoOnSell from '../assets/LogoOnSellSistemas.png'
 
 const Layout: React.FC = () => {
   const location = useLocation()
@@ -45,7 +46,7 @@ const Layout: React.FC = () => {
             {/* Logo */}
             <div className="flex items-center">
               <img
-                src="/src/assets/LogoOnSellSistemas.png"
+                src={logoOnSell}
                 alt="OnSell Sistemas"
                 className="h-12 object-contain"
               />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '../services/api'
+import logoSAS from '../assets/SAS.png'
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('')
@@ -35,7 +36,7 @@ const LoginPage: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <img
-            src="/src/assets/SAS.png"
+            src={logoSAS}
             alt="Logo SAS"
             className="w-64 h-64 mx-auto object-contain"
           />

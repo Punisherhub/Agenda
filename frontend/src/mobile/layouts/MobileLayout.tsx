@@ -10,6 +10,7 @@ import {
   GiftIcon,
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline'
+import logoOnSell from '../../assets/LogoOnSellSistemas.png'
 
 interface MobileLayoutTailwindProps {
   children: React.ReactNode
@@ -41,7 +42,7 @@ const MobileLayoutTailwind: React.FC<MobileLayoutTailwindProps> = ({ children })
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center justify-between">
           <img
-            src="/src/assets/LogoOnSellSistemas.png"
+            src={logoOnSell}
             alt="OnSell Sistemas"
             className="h-8 object-contain"
           />
