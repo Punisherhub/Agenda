@@ -7,7 +7,7 @@ from decimal import Decimal
 class ServicoCreate(BaseModel):
     nome: str = Field(..., min_length=2, max_length=255)
     descricao: Optional[str] = None
-    preco: Decimal = Field(..., ge=0, decimal_places=2)
+    preco: Decimal = Field(..., ge=0)
     duracao_minutos: int = Field(..., ge=15)  # Mínimo 15 minutos
     categoria: Optional[str] = Field(None, max_length=100)
     cor: Optional[str] = Field("#3788d8", min_length=7, max_length=7)  # Hex color
@@ -18,7 +18,7 @@ class ServicoCreate(BaseModel):
 class ServicoUpdate(BaseModel):
     nome: Optional[str] = Field(None, min_length=2, max_length=255)
     descricao: Optional[str] = None
-    preco: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    preco: Optional[Decimal] = Field(None, ge=0)
     duracao_minutos: Optional[int] = Field(None, ge=15)
     categoria: Optional[str] = Field(None, max_length=100)
     cor: Optional[str] = Field(None, min_length=7, max_length=7)
