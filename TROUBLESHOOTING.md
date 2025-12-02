@@ -51,6 +51,43 @@ Configuração customizada de Nixpacks pode interferir com auto-detecção do Py
 
 ---
 
+## ❌ Problema: ValueError: Unknown constraint decimal_places
+
+### Sintoma
+```
+ValueError: Unknown constraint decimal_places
+File "/app/app/schemas/servico.py", line 10
+```
+
+### Causa
+**Incompatibilidade de versão do Pydantic**. Railway usa Pydantic 2.x mais recente, que não suporta o constraint `decimal_places` (foi removido na v2).
+
+### ✅ Solução Aplicada
+1. Removido `decimal_places=2` de todos os campos `Decimal` nos schemas
+2. Mantido apenas `ge=0` para validação de valor mínimo
+3. Validação de casas decimais deve ser feita na camada de modelo ou service se necessário
+
+**Exemplo da mudança:**
+```python
+# ❌ Antes (Pydantic 1.x)
+preco: Decimal = Field(..., ge=0, decimal_places=2)
+
+# ✅ Depois (Pydantic 2.x)
+preco: Decimal = Field(..., ge=0)
+```
+
+### Arquivos Corrigidos
+- `backend/app/schemas/servico.py:10` - ServicoCreate
+- `backend/app/schemas/servico.py:21` - ServicoUpdate
+
+### Prevenção
+- **Sempre use constraints compatíveis com Pydantic 2.x**
+- Evite: `decimal_places`, `max_digits` (removidos na v2)
+- Use: `ge`, `le`, `gt`, `lt`, `min_length`, `max_length` (compatíveis)
+- Consulte: [Pydantic v2 Migration Guide](https://docs.pydantic.dev/latest/migration/)
+
+---
+
 ## ❌ Problema: CORS Error no Frontend
 
 ### Sintoma
