@@ -35,8 +35,12 @@ interface Usuario {
 }
 
 // API Client
+// Em produção, usa VITE_API_URL configurado no Railway
+// Em desenvolvimento, usa proxy /api
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' }
 })
 
