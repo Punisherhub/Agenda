@@ -130,6 +130,38 @@ module.exports = {
 
 ---
 
+## ❌ Problema: Blocked request - host not allowed (Vite preview)
+
+### Sintoma
+```
+Blocked request. This host ("agenda-onsell.up.railway.app") is not allowed.
+To allow this host, add "agenda-onsell.up.railway.app" to `preview.allowedHosts` in vite.config.js.
+```
+
+### Causa
+**Vite preview mode bloqueia hosts não autorizados** por segurança. Railway usa domínios dinâmicos que precisam ser explicitamente permitidos.
+
+### ✅ Solução Aplicada
+Adicionar `allowedHosts` no `vite.config.ts`:
+
+```typescript
+preview: {
+  host: '0.0.0.0',
+  port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+  allowedHosts: [
+    'agenda-onsell.up.railway.app',  // Seu domínio específico
+    '.railway.app',                   // Wildcard para qualquer subdomínio railway.app
+  ],
+},
+```
+
+### Prevenção
+- **Sempre adicione allowedHosts em preview mode** para produção
+- Use wildcards (`.railway.app`) para cobrir todos os subdomínios
+- Para desenvolvimento local, `0.0.0.0` é suficiente
+
+---
+
 ## ❌ Problema: CORS Error no Frontend
 
 ### Sintoma
