@@ -88,6 +88,48 @@ preco: Decimal = Field(..., ge=0)
 
 ---
 
+## ❌ Problema: SyntaxError: Unexpected token 'export' no postcss.config.js
+
+### Sintoma
+```
+Failed to load PostCSS config
+SyntaxError: Unexpected token 'export'
+/app/postcss.config.js:1
+export default {
+^^^^^^
+```
+
+### Causa
+**Sintaxe ESM em arquivo CommonJS**. Railway/Node.js está esperando sintaxe CommonJS mas o arquivo usa `export default` (ESM).
+
+### ✅ Solução Aplicada
+Mudar `postcss.config.js` de sintaxe ESM para CommonJS:
+
+```javascript
+// ❌ Antes (ESM)
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+// ✅ Depois (CommonJS)
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+```
+
+### Prevenção
+- **Use CommonJS em arquivos de configuração** quando não tiver `"type": "module"` no package.json
+- Ou adicione `"type": "module"` no package.json e mude TODOS os arquivos config para ESM
+- Railway/Docker geralmente funciona melhor com CommonJS por padrão
+
+---
+
 ## ❌ Problema: CORS Error no Frontend
 
 ### Sintoma
