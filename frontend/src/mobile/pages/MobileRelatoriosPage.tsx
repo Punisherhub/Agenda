@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { relatoriosApi, agendamentosApi } from '../../services/api'
 import MobileLayout from '../layouts/MobileLayout'
-import { Agendamento } from '../../types'
 
 const MobileRelatoriosPage: React.FC = () => {
   // Calcular últimos 30 dias
