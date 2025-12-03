@@ -410,6 +410,9 @@ const MobileClientesPage: React.FC = () => {
                               {cliente.email}
                             </p>
                           )}
+                          <p className="text-sm font-semibold text-yellow-600 mt-1">
+                            {cliente.pontos || 0} pontos
+                          </p>
                         </div>
                       </div>
                       <div className="flex gap-2 mt-2">

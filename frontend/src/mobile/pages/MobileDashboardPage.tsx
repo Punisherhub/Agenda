@@ -6,8 +6,6 @@ import MobileLayout from '../layouts/MobileLayout'
 import {
   CalendarIcon,
   MagnifyingGlassIcon,
-  CurrencyDollarIcon,
-  ArrowTrendingUpIcon,
   ClockIcon
 } from '@heroicons/react/24/outline'
 
@@ -35,33 +33,21 @@ const MobileDashboardPage: React.FC = () => {
     }
   }
 
-  // Buscar agendamentos de hoje
+  // Buscar agendamentos de hoje (apenas não finalizados)
   const { data: agendamentosHoje, isLoading } = useQuery({
-    queryKey: ['agendamentos', 'hoje'],
+    queryKey: ['agendamentos', 'hoje', 'ativos'],
     queryFn: () => agendamentosApi.list({
       data_inicio: dataHoje,
       data_fim: dataHoje,
       limit: 10
+    }),
+    select: (data) => ({
+      ...data,
+      agendamentos: data.agendamentos?.filter((a: any) =>
+        a.status !== 'CONCLUIDO' && a.status !== 'CANCELADO'
+      ) || []
     })
   })
-
-  // Calcular receita e lucro de HOJE (dos agendamentos concluídos)
-  // NOTA: Isto é apenas cálculo local, NÃO faz query adicional
-  const calcularResumoFinanceiro = () => {
-    if (!agendamentosHoje?.agendamentos) {
-      return { receita: 0, lucro: 0 }
-    }
-
-    const receita = agendamentosHoje.agendamentos
-      .filter((a: any) => a.status === 'CONCLUIDO')
-      .reduce((sum: number, a: any) => sum + (a.valor_final || 0), 0)
-
-    const lucro = receita * 0.8
-
-    return { receita, lucro }
-  }
-
-  const financeiro = calcularResumoFinanceiro()
 
   return (
     <MobileLayout>
@@ -102,24 +88,12 @@ const MobileDashboardPage: React.FC = () => {
           <p className="text-sm text-gray-500 mt-1">
             {agendamentosHoje?.agendamentos?.length === 1 ? 'agendamento' : 'agendamentos'}
           </p>
-
-          {/* Dados financeiros calculados */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-xs text-gray-500 flex items-center gap-1">
-              <CurrencyDollarIcon className="w-4 h-4" />
-              Receita hoje: R$ {financeiro.receita.toFixed(2)}
-            </p>
-            <p className="text-xs text-gray-500 flex items-center gap-1">
-              <ArrowTrendingUpIcon className="w-4 h-4" />
-              Lucro estimado: R$ {financeiro.lucro.toFixed(2)}
-            </p>
-          </div>
         </div>
 
         {/* Lista de Agendamentos */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold">Agendamentos de Hoje</h2>
+            <h2 className="text-lg font-semibold">Agendamentos para Hoje</h2>
           </div>
 
           <div className="p-4">
@@ -141,7 +115,7 @@ const MobileDashboardPage: React.FC = () => {
                           {agendamento.cliente?.nome || `Cliente #${agendamento.cliente_id}`}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {agendamento.servico?.nome || `Serviço #${agendamento.servico_id}`}
+                          {agendamento.servico?.nome || (agendamento.servico_id ? `Serviço #${agendamento.servico_id}` : 'Serviço Personalizado')}
                         </p>
                         <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
                           <ClockIcon className="w-4 h-4" />

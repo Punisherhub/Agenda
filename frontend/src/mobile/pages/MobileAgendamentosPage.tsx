@@ -252,10 +252,13 @@ const MobileAgendamentosPage: React.FC = () => {
 
   // Handler para editar
   const handleEdit = (agendamento: Agendamento) => {
-    setSelectedAgendamento(agendamento)
-    setIsEditMode(true)
     setIsDetailModalOpen(false)
-    setIsModalOpen(true)
+    // Pequeno delay para garantir que o modal de detalhe fecha primeiro
+    setTimeout(() => {
+      setSelectedAgendamento(agendamento)
+      setIsEditMode(true)
+      setIsModalOpen(true)
+    }, 100)
   }
 
   // Handler para abrir modal de detalhes
@@ -491,7 +494,7 @@ const MobileAgendamentosPage: React.FC = () => {
                 <div className="border-t pt-2">
                   <p className="text-sm text-gray-600 flex items-center gap-1">
                     <WrenchScrewdriverIcon className="w-4 h-4" />
-                    {agendamento.servico?.nome || `Serviço #${agendamento.servico_id}`}
+                    {agendamento.servico?.nome || (agendamento.servico_id ? `Serviço #${agendamento.servico_id}` : 'Serviço Personalizado')}
                   </p>
                   <p className="text-sm text-gray-600 flex items-center gap-1">
                     <CalendarIcon className="w-4 h-4" />

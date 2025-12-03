@@ -87,12 +87,16 @@ class RelatorioService:
             ).scalar()
             total_custos = float(custos) if custos else 0.0
 
+        lucro_bruto = total_receita - total_custos
+        margem_lucro = (lucro_bruto / total_receita * 100) if total_receita > 0 else 0
+
         return ResumoFinanceiro(
             data_inicio=data_inicio,
             data_fim=data_fim,
             total_receita=total_receita,
             total_custos_materiais=total_custos,
-            lucro_bruto=total_receita - total_custos,
+            lucro_bruto=lucro_bruto,
+            margem_lucro=margem_lucro,
             total_agendamentos=total_agendamentos,
             total_agendamentos_concluidos=total_agendamentos_finalizados
         )

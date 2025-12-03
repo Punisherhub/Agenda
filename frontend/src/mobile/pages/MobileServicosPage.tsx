@@ -4,12 +4,6 @@ import { servicosApi } from '../../services/api'
 import MobileLayout from '../layouts/MobileLayout'
 import MobileFAB from '../components/MobileFAB'
 import MobileModal from '../components/MobileModal'
-import {
-  ClockIcon,
-  CurrencyDollarIcon,
-  PencilIcon,
-  TrashIcon
-} from '@heroicons/react/24/outline'
 
 const MobileServicosPage: React.FC = () => {
   const queryClient = useQueryClient()
@@ -45,6 +39,12 @@ const MobileServicosPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['servicos'] })
       handleCloseModal()
+    },
+    onError: (error: any) => {
+      const errorMsg = error.response?.data?.detail
+        ? JSON.stringify(error.response.data.detail)
+        : error.message || 'Erro desconhecido'
+      alert('Erro ao criar serviço: ' + errorMsg)
     }
   })
 
@@ -101,13 +101,17 @@ const MobileServicosPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Pegar estabelecimento_id do usuário logado
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+
     const servicoData = {
       nome: formData.nome,
       descricao: formData.descricao || null,
       categoria: formData.categoria || null,
       preco: parseFloat(formData.preco),
       duracao_minutos: parseInt(formData.duracao_minutos),
-      cor: formData.cor
+      cor: formData.cor,
+      estabelecimento_id: user.estabelecimento_id
     }
 
     if (editingServico) {
@@ -250,13 +254,13 @@ const MobileServicosPage: React.FC = () => {
                   <div>
                     <p className="text-xs text-gray-500">Duração</p>
                     <p className="text-sm font-medium text-gray-900">
-                      <ClockIcon className="w-4 h-4 inline" /> {servico.duracao_minutos} min
+                      {servico.duracao_minutos} min
                     </p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-xs text-gray-500">Preço</p>
                     <p className="text-lg font-bold text-green-600">
-                      <CurrencyDollarIcon className="w-5 h-5 inline" /> R$ {Number(servico.preco).toFixed(2)}
+                      R$ {Number(servico.preco).toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -267,7 +271,7 @@ const MobileServicosPage: React.FC = () => {
                     onClick={() => handleOpenModal(servico)}
                     className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium active:bg-blue-700"
                   >
-                    <PencilIcon className="w-4 h-4 inline" /> Editar
+                    Editar
                   </button>
                   {servico.is_active && (
                     <button
@@ -275,7 +279,7 @@ const MobileServicosPage: React.FC = () => {
                       disabled={deleteMutation.isPending}
                       className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium active:bg-red-700 disabled:bg-gray-400"
                     >
-                      <TrashIcon className="w-4 h-4 inline" /> Desativar
+                      Desativar
                     </button>
                   )}
                 </div>

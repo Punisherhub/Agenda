@@ -16,11 +16,17 @@ const DashboardPage: React.FC = () => {
   const isAdminOrManager = user.role === 'admin' || user.role === 'manager'
 
   const { data: agendamentosHoje, isLoading } = useQuery({
-    queryKey: ['agendamentos', 'hoje'],
+    queryKey: ['agendamentos', 'hoje', 'ativos'],
     queryFn: () => agendamentosApi.list({
       data_inicio: format(hoje, 'yyyy-MM-dd'),
       data_fim: format(hoje, 'yyyy-MM-dd'),
       limit: 10
+    }),
+    select: (data) => ({
+      ...data,
+      agendamentos: data.agendamentos?.filter((a: any) =>
+        a.status !== 'CONCLUIDO' && a.status !== 'CANCELADO'
+      ) || []
     })
   })
 
@@ -144,7 +150,7 @@ const DashboardPage: React.FC = () => {
       {/* Agendamentos de hoje */}
       <div className="card">
         <div className="p-6 border-b">
-          <h2 className="text-lg font-semibold">Agendamentos de Hoje</h2>
+          <h2 className="text-lg font-semibold">Agendamentos para Hoje</h2>
         </div>
 
         <div className="p-6">
@@ -165,7 +171,7 @@ const DashboardPage: React.FC = () => {
                       {agendamento.cliente?.nome || `Cliente #${agendamento.cliente_id}`}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {agendamento.servico?.nome || `Serviço #${agendamento.servico_id}`}
+                      {agendamento.servico?.nome || (agendamento.servico_id ? `Serviço #${agendamento.servico_id}` : 'Serviço Personalizado')}
                     </p>
                     <p className="text-sm text-gray-500">
                       {formatBrazilTime(agendamento.data_inicio)} às{' '}

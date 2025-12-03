@@ -5,7 +5,7 @@ import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
-import { TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Package, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, subDays } from 'date-fns'
 import type { ReceitaDiaria, ServicoLucro, MaterialConsumo, Agendamento } from '../types'
 import AgendamentoDetailModal from '../components/AgendamentoDetailModal'
@@ -55,9 +55,6 @@ const RelatoriosPage: React.FC = () => {
   }
 
   const resumo = dashboard.resumo_financeiro
-  const taxaConversao = resumo.total_agendamentos > 0
-    ? (resumo.total_agendamentos_concluidos / resumo.total_agendamentos * 100).toFixed(1)
-    : 0
 
   // Preparar dados para gráfico de receita diária
   const receitaDiariaData = dashboard.receita_diaria.map((item: ReceitaDiaria) => ({
@@ -164,15 +161,19 @@ const RelatoriosPage: React.FC = () => {
         <div className="card p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Taxa de Conversão</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {taxaConversao}%
+              <p className="text-sm text-gray-600">Margem de Lucro</p>
+              <p className={`text-2xl font-bold ${resumo.margem_lucro >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
+                {resumo.margem_lucro.toFixed(1)}%
               </p>
             </div>
-            <ShoppingCart className="w-10 h-10 text-purple-500" />
+            {resumo.margem_lucro >= 0 ? (
+              <TrendingUp className="w-10 h-10 text-purple-500" />
+            ) : (
+              <TrendingDown className="w-10 h-10 text-red-500" />
+            )}
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            {resumo.total_agendamentos} agendamentos total
+            Lucratividade do período
           </p>
         </div>
       </div>

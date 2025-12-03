@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import MobileModal from './MobileModal'
-import { Agendamento, Cliente, Servico } from '../../types'
+import { Agendamento, Cliente, Servico, PremioDisponivel } from '../../types'
+import { fidelidadeApi } from '../../services/api'
 import {
   UserIcon,
   WrenchScrewdriverIcon,
@@ -45,6 +46,11 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
   const [horaFim, setHoraFim] = useState('')
   const [valorDesconto, setValorDesconto] = useState('0')
   const [observacoes, setObservacoes] = useState('')
+
+  // Fidelidade
+  const [premiosDisponiveis, setPremiosDisponiveis] = useState<PremioDisponivel[]>([])
+  const [premioSelecionado, setPremioSelecionado] = useState<number | null>(null)
+  const [pontosCliente, setPontosCliente] = useState<number>(0)
 
   // Estado derivado
   const servicoSelecionado = servicos.find(s => s.id === servicoId)
@@ -123,6 +129,64 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
       }
     }
   }, [isOpen, agendamento, clientes, clientePreSelecionado])
+
+  // Buscar prêmios disponíveis quando cliente for selecionado
+  useEffect(() => {
+    const fetchPremios = async () => {
+      if (clienteId) {
+        try {
+          const premios = await fidelidadeApi.listarPremiosDisponiveis(clienteId)
+          setPremiosDisponiveis(premios)
+          // Buscar pontos do cliente
+          const clienteSelecionado = clientes.find(c => c.id === clienteId)
+          setPontosCliente(clienteSelecionado?.pontos || 0)
+        } catch (error) {
+          console.error('Erro ao buscar prêmios:', error)
+          setPremiosDisponiveis([])
+          setPontosCliente(0)
+        }
+      } else {
+        setPremiosDisponiveis([])
+        setPontosCliente(0)
+        setPremioSelecionado(null)
+      }
+    }
+
+    fetchPremios()
+  }, [clienteId, clientes])
+
+  // Aplicar desconto do prêmio
+  useEffect(() => {
+    if (!premioSelecionado || premiosDisponiveis.length === 0) {
+      return
+    }
+
+    const premio = premiosDisponiveis.find(p => p.premio.id === premioSelecionado)?.premio
+    if (!premio) {
+      return
+    }
+
+    let valorBase = 0
+    if (isServicoPersonalizado) {
+      valorBase = Number(valorServicoPersonalizado) || 0
+    } else if (servicoSelecionado) {
+      valorBase = Number(servicoSelecionado.preco) || 0
+    }
+
+    let descontoFinal = 0
+
+    if (premio.tipo_premio === 'DESCONTO_PERCENTUAL' && premio.valor_desconto) {
+      const descontoCalculado = (valorBase * Number(premio.valor_desconto)) / 100
+      descontoFinal = Math.min(descontoCalculado, valorBase)
+    } else if (premio.tipo_premio === 'DESCONTO_FIXO' && premio.valor_desconto) {
+      const descontoCalculado = Number(premio.valor_desconto)
+      descontoFinal = Math.min(descontoCalculado, valorBase)
+    } else if (premio.tipo_premio === 'SERVICO_GRATIS') {
+      descontoFinal = valorBase
+    }
+
+    setValorDesconto(descontoFinal.toString())
+  }, [premioSelecionado, premiosDisponiveis, isServicoPersonalizado, valorServicoPersonalizado, servicoSelecionado])
 
   // Calcular duração
   const calcularDuracao = () => {
@@ -282,6 +346,21 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
 
     try {
       await onSave(agendamentoData)
+
+      // Resgatar prêmio se selecionado (apenas na criação, não na edição)
+      if (premioSelecionado && clienteId && !agendamento) {
+        try {
+          await fidelidadeApi.resgatarPremio({
+            cliente_id: clienteId,
+            premio_id: premioSelecionado,
+            pontos_utilizados: premiosDisponiveis.find(p => p.premio.id === premioSelecionado)?.premio.pontos_necessarios || 0
+          })
+        } catch (premioError) {
+          console.error('Erro ao resgatar prêmio:', premioError)
+          alert('Agendamento criado, mas houve erro ao resgatar o prêmio.')
+        }
+      }
+
       onClose()
     } catch (error: any) {
       console.error('Erro ao criar agendamento:', error)
@@ -347,6 +426,50 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
             <p className="text-sm text-green-600 mt-1">✓ Cliente selecionado</p>
           )}
         </div>
+
+        {/* Fidelidade - Pontos e Prêmios */}
+        {clienteId && premiosDisponiveis.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-gray-900 text-sm">Programa de Fidelidade</h4>
+              <span className="text-sm font-bold text-yellow-600">{pontosCliente} pontos</span>
+            </div>
+
+            {premiosDisponiveis.filter(p => p.pode_resgatar).length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Usar Prêmio
+                </label>
+                <select
+                  value={premioSelecionado || ''}
+                  onChange={(e) => setPremioSelecionado(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base bg-white"
+                >
+                  <option value="">Nenhum prêmio</option>
+                  {premiosDisponiveis
+                    .filter(p => p.pode_resgatar)
+                    .map((p) => (
+                      <option key={p.premio.id} value={p.premio.id}>
+                        {p.premio.nome} ({p.premio.pontos_necessarios} pts)
+                      </option>
+                    ))
+                  }
+                </select>
+                {premioSelecionado && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    {premiosDisponiveis.find(p => p.premio.id === premioSelecionado)?.premio.descricao}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {premiosDisponiveis.filter(p => !p.pode_resgatar).length > 0 && (
+              <p className="text-xs text-gray-500">
+                Acumule mais {premiosDisponiveis.filter(p => !p.pode_resgatar)[0]?.premio.pontos_necessarios - pontosCliente} pontos para resgatar prêmios
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Toggle Serviço Personalizado */}
         <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border border-gray-200">

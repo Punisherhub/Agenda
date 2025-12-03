@@ -20,6 +20,7 @@ class ResumoFinanceiro(BaseModel):
     total_receita: float  # Soma de valores finais dos agendamentos concluídos
     total_custos_materiais: float  # Soma dos custos de materiais consumidos
     lucro_bruto: float  # receita - custos
+    margem_lucro: float  # (lucro_bruto / total_receita) * 100
     total_agendamentos: int
     total_agendamentos_concluidos: int
 

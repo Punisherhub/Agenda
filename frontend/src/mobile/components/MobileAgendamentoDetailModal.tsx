@@ -233,12 +233,12 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
           )}
 
           {/* Serviço */}
-          {servico && (
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h3 className="font-bold text-gray-900 mb-3 flex items-center">
-                <span className="text-xl mr-2">✂️</span>
-                Serviço
-              </h3>
+          <div className="bg-blue-50 rounded-lg p-4">
+            <h3 className="font-bold text-gray-900 mb-3 flex items-center">
+              <span className="text-xl mr-2">✂️</span>
+              Serviço
+            </h3>
+            {servico ? (
               <div className="space-y-2 text-sm">
                 <div>
                   <span className="font-semibold text-gray-700">Nome:</span> {servico.nome}
@@ -260,8 +260,24 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="font-semibold text-gray-700">Tipo:</span> Serviço Personalizado
+                </div>
+                {agendamento.servico_personalizado_nome && (
+                  <div>
+                    <span className="font-semibold text-gray-700">Nome:</span> {agendamento.servico_personalizado_nome}
+                  </div>
+                )}
+                {agendamento.servico_personalizado_descricao && (
+                  <div>
+                    <span className="font-semibold text-gray-700">Descrição:</span> {agendamento.servico_personalizado_descricao}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Data e Hora */}
           <div className="bg-green-50 rounded-lg p-4">

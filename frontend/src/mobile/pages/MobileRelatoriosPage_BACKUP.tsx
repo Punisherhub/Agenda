@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { relatoriosApi, agendamentosApi } from '../../services/api'
+import { agendamentosApi } from '../../services/api'
 import MobileLayout from '../layouts/MobileLayout'
 import { Agendamento } from '../../types'
 
@@ -21,22 +21,6 @@ const MobileRelatoriosPage: React.FC = () => {
 
   const [page, setPage] = useState(0)
   const limit = 10
-
-  // Query Dashboard
-  const { data: dashboard } = useQuery({
-    queryKey: ['dashboard-relatorios-mobile', dataInicio, dataFim],
-    queryFn: async () => {
-      try {
-        return await relatoriosApi.getDashboard({
-          data_inicio: dataInicio,
-          data_fim: dataFim
-        })
-      } catch (error) {
-        console.error('Erro ao buscar dashboard:', error)
-        return null
-      }
-    }
-  })
 
   // Query Agendamentos Concluídos
   const { data: agendamentosData, isLoading: isLoadingAgendamentos } = useQuery({
@@ -60,19 +44,6 @@ const MobileRelatoriosPage: React.FC = () => {
 
   const agendamentos = agendamentosData?.agendamentos || []
   const totalAgendamentos = agendamentosData?.total || 0
-
-  // Dados do dashboard
-  const resumo = {
-    total_receita: dashboard?.resumo_financeiro?.total_receita || 0,
-    total_custos_materiais: dashboard?.resumo_financeiro?.total_custos_materiais || 0,
-    lucro_bruto: dashboard?.resumo_financeiro?.lucro_bruto || 0,
-    margem_lucro: dashboard?.resumo_financeiro?.margem_lucro || 0,
-    total_agendamentos: dashboard?.resumo_financeiro?.total_agendamentos || 0,
-    total_agendamentos_concluidos: dashboard?.resumo_financeiro?.total_agendamentos_concluidos || 0
-  }
-
-  const receitaDiaria = Array.isArray(dashboard?.receita_diaria) ? dashboard.receita_diaria : []
-  const lucroPorServico = Array.isArray(dashboard?.lucro_por_servico) ? dashboard.lucro_por_servico : []
 
   // Formatar data (PURE JS)
   const formatData = (dateString: string) => {
@@ -101,72 +72,30 @@ const MobileRelatoriosPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Cards Resumo */}
+        {/* Cards Resumo - Mock Data */}
         <div className="space-y-3">
           <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white shadow-lg">
             <div className="text-sm opacity-90">Receita Total</div>
-            <div className="text-3xl font-bold">
-              R$ {Number(resumo.total_receita).toFixed(2)}
-            </div>
+            <div className="text-3xl font-bold">R$ 0,00</div>
             <div className="text-xs mt-1 opacity-80">Últimos 30 dias</div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
               <div className="text-xs text-gray-600">Lucro Bruto</div>
-              <div className="text-xl font-bold text-blue-600">
-                R$ {Number(resumo.lucro_bruto).toFixed(2)}
-              </div>
+              <div className="text-xl font-bold text-blue-600">R$ 0,00</div>
             </div>
             <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
               <div className="text-xs text-gray-600">Margem</div>
-              <div className="text-xl font-bold text-purple-600">
-                {resumo.margem_lucro.toFixed(1)}%
-              </div>
+              <div className="text-xl font-bold text-purple-600">0%</div>
             </div>
           </div>
 
           <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
             <div className="text-xs text-gray-600">Custo de Materiais</div>
-            <div className="text-xl font-bold text-orange-600">
-              R$ {Number(resumo.total_custos_materiais).toFixed(2)}
-            </div>
+            <div className="text-xl font-bold text-orange-600">R$ 0,00</div>
           </div>
         </div>
-
-        {/* Receita Diária - Tabela */}
-        {receitaDiaria.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Receita Diária</h3>
-            <div className="space-y-2">
-              {receitaDiaria.slice(0, 7).map((item: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                  <span className="text-sm text-gray-700">{item.data}</span>
-                  <span className="text-sm font-bold text-green-600">
-                    R$ {Number(item.receita || 0).toFixed(2)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Lucro por Serviço - Tabela */}
-        {lucroPorServico.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Lucro por Serviço</h3>
-            <div className="space-y-2">
-              {lucroPorServico.map((item: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                  <span className="text-sm text-gray-700">{item.nome_servico}</span>
-                  <span className="text-sm font-bold text-blue-600">
-                    R$ {Number(item.lucro || 0).toFixed(2)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Histórico de Agendamentos */}
         <div className="bg-white rounded-lg shadow-sm p-4">
