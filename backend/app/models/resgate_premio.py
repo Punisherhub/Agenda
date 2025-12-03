@@ -10,11 +10,11 @@ class ResgatePremio(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     # Foreign Keys
-    cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=False, index=True)
-    premio_id = Column(Integer, ForeignKey("premios.id"), nullable=False)
+    cliente_id = Column(Integer, ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False, index=True)
+    premio_id = Column(Integer, ForeignKey("premios.id", ondelete="CASCADE"), nullable=False)
     usado_em_agendamento_id = Column(
         Integer,
-        ForeignKey("agendamentos.id"),
+        ForeignKey("agendamentos.id", ondelete="SET NULL"),
         nullable=True,
         comment="Agendamento onde o prêmio foi usado"
     )

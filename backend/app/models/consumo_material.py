@@ -11,8 +11,8 @@ class ConsumoMaterial(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     # Relacionamentos
-    agendamento_id = Column(Integer, ForeignKey("agendamentos.id"), nullable=False)
-    material_id = Column(Integer, ForeignKey("materiais.id"), nullable=False)
+    agendamento_id = Column(Integer, ForeignKey("agendamentos.id", ondelete="CASCADE"), nullable=False)
+    material_id = Column(Integer, ForeignKey("materiais.id", ondelete="CASCADE"), nullable=False)
 
     # Quantidade consumida
     quantidade_consumida = Column(Float, nullable=False)  # Quantidade em ml/unidade/grama

@@ -40,7 +40,7 @@ class User(Base):
     dias_trabalho = Column(String(7), default="1111100")  # 1=trabalha, 0=não trabalha (Dom-Sab)
 
     # Foreign Key
-    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id"), nullable=True)
+    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id", ondelete="CASCADE"), nullable=True)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -48,4 +48,4 @@ class User(Base):
 
     # Relationships
     estabelecimento = relationship("Estabelecimento", back_populates="usuarios")
-    agendamentos = relationship("Agendamento", back_populates="vendedor")
+    agendamentos = relationship("Agendamento", back_populates="vendedor", foreign_keys="Agendamento.vendedor_id")

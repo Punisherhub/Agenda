@@ -118,12 +118,17 @@ async def atualizar_empresa(
 
 
 @router.delete("/{empresa_id}")
-async def desativar_empresa(
+async def deletar_empresa(
     empresa_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Desativar empresa"""
+    """Deletar empresa permanentemente - Admin/Suporte only
+
+    ATENÇÃO: Esta ação é irreversível!
+    - Deleta em cascata: Estabelecimentos → Serviços, Usuários, Agendamentos e Materiais
+    - Empresa será removida do banco de dados
+    """
     check_admin_permission(current_user)
 
     from app.models.empresa import Empresa
@@ -135,7 +140,8 @@ async def desativar_empresa(
             detail="Empresa não encontrada"
         )
 
-    empresa.is_active = False
+    # Deletar permanentemente (cascade delete configurado nos relationships)
+    db.delete(empresa)
     db.commit()
 
-    return {"message": f"Empresa {empresa_id} desativada com sucesso"}
+    return {"message": f"Empresa {empresa_id} deletada permanentemente com sucesso"}

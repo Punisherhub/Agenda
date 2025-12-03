@@ -165,12 +165,17 @@ async def atualizar_role_usuario(
 
 
 @router.delete("/{user_id}")
-async def desativar_usuario(
+async def deletar_usuario(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Desativar usuário - Admin only"""
+    """Deletar usuário permanentemente - Admin/Suporte only
+
+    ATENÇÃO: Esta ação é irreversível!
+    - Agendamentos do usuário terão vendedor_id = NULL
+    - Usuário será removido do banco de dados
+    """
     check_admin_permission(current_user)
 
     user = db.query(User).filter(User.id == user_id).first()
@@ -180,14 +185,15 @@ async def desativar_usuario(
             detail="Usuário não encontrado"
         )
 
-    # Não pode desativar a si mesmo
+    # Não pode deletar a si mesmo
     if user.id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Você não pode desativar a si mesmo"
+            detail="Você não pode deletar a si mesmo"
         )
 
-    user.is_active = False
+    # Deletar permanentemente (agendamentos terão vendedor_id = NULL devido ao ondelete='SET NULL')
+    db.delete(user)
     db.commit()
 
-    return {"message": f"Usuário {user_id} desativado com sucesso"}
+    return {"message": f"Usuário {user_id} deletado permanentemente com sucesso"}

@@ -26,7 +26,7 @@ class Estabelecimento(Base):
     capacidade_maxima = Column(Integer, default=10)  # Máximo de agendamentos simultâneos
 
     # Foreign Key
-    empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
+    empresa_id = Column(Integer, ForeignKey("empresas.id", ondelete="CASCADE"), nullable=False)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -35,6 +35,7 @@ class Estabelecimento(Base):
     # Relationships
     empresa = relationship("Empresa", back_populates="estabelecimentos")
     servicos = relationship("Servico", back_populates="estabelecimento", cascade="all, delete-orphan")
-    usuarios = relationship("User", back_populates="estabelecimento")
-    agendamentos = relationship("Agendamento", back_populates="estabelecimento")
+    usuarios = relationship("User", back_populates="estabelecimento", cascade="all, delete-orphan")
+    clientes = relationship("Cliente", back_populates="estabelecimento", cascade="all, delete-orphan")
+    agendamentos = relationship("Agendamento", back_populates="estabelecimento", cascade="all, delete-orphan")
     materiais = relationship("Material", back_populates="estabelecimento", cascade="all, delete-orphan")

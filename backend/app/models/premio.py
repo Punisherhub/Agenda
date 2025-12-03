@@ -31,7 +31,7 @@ class Premio(Base):
     # Serviço gratuito (se tipo_premio = SERVICO_GRATIS)
     servico_id = Column(
         Integer,
-        ForeignKey("servicos.id"),
+        ForeignKey("servicos.id", ondelete="SET NULL"),
         nullable=True,
         comment="Serviço gratuito (se aplicável)"
     )
@@ -40,7 +40,7 @@ class Premio(Base):
     ativo = Column(Boolean, default=True, nullable=False)
 
     # Foreign Key
-    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id"), nullable=False, index=True)
+    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

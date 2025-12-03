@@ -24,7 +24,7 @@ class Servico(Base):
     requer_agendamento = Column(Boolean, default=True)
 
     # Foreign Key
-    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id"), nullable=False)
+    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id", ondelete="CASCADE"), nullable=False)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

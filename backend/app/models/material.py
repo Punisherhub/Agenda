@@ -35,7 +35,7 @@ class Material(Base):
     is_active = Column(Boolean, default=True)
 
     # Relacionamentos
-    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id"), nullable=False)
+    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id", ondelete="CASCADE"), nullable=False)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

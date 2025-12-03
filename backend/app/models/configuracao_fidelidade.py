@@ -20,7 +20,7 @@ class ConfiguracaoFidelidade(Base):
     ativo = Column(Boolean, default=False, nullable=False)
 
     # Foreign Key
-    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id"), nullable=False, index=True)
+    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

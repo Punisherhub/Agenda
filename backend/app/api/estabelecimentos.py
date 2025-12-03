@@ -121,12 +121,17 @@ async def atualizar_estabelecimento(
 
 
 @router.delete("/{estabelecimento_id}")
-async def desativar_estabelecimento(
+async def deletar_estabelecimento(
     estabelecimento_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Desativar estabelecimento"""
+    """Deletar estabelecimento permanentemente - Admin/Manager/Suporte only
+
+    ATENÇÃO: Esta ação é irreversível!
+    - Deleta em cascata: Serviços, Usuários, Agendamentos e Materiais
+    - Estabelecimento será removido do banco de dados
+    """
     check_manager_permission(current_user)
 
     from app.models.estabelecimento import Estabelecimento
@@ -138,10 +143,11 @@ async def desativar_estabelecimento(
             detail="Estabelecimento não encontrado"
         )
 
-    estabelecimento.is_active = False
+    # Deletar permanentemente (cascade delete configurado nos relationships)
+    db.delete(estabelecimento)
     db.commit()
 
-    return {"message": f"Estabelecimento {estabelecimento_id} desativado com sucesso"}
+    return {"message": f"Estabelecimento {estabelecimento_id} deletado permanentemente com sucesso"}
 
 
 @router.get("/{estabelecimento_id}/horarios")

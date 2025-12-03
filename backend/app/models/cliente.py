@@ -32,7 +32,7 @@ class Cliente(Base):
     is_active = Column(Boolean, default=True)
 
     # Foreign Key
-    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id"), nullable=True)
+    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id", ondelete="CASCADE"), nullable=True)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -40,5 +40,5 @@ class Cliente(Base):
     last_visit = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    estabelecimento = relationship("Estabelecimento")
-    agendamentos = relationship("Agendamento", back_populates="cliente")
+    estabelecimento = relationship("Estabelecimento", back_populates="clientes")
+    agendamentos = relationship("Agendamento", back_populates="cliente", cascade="all, delete-orphan")

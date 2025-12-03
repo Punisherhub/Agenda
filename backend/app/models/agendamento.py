@@ -53,10 +53,10 @@ class Agendamento(Base):
     avaliacao_comentario = Column(Text, nullable=True)
 
     # Foreign Keys
-    cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=False)
-    servico_id = Column(Integer, ForeignKey("servicos.id"), nullable=True)  # Nullable para serviços personalizados
-    vendedor_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Quem fez o agendamento
-    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id"), nullable=False)
+    cliente_id = Column(Integer, ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+    servico_id = Column(Integer, ForeignKey("servicos.id", ondelete="SET NULL"), nullable=True)  # Nullable para serviços personalizados
+    vendedor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # Quem fez o agendamento (pode ser NULL se usuário deletado)
+    estabelecimento_id = Column(Integer, ForeignKey("estabelecimentos.id", ondelete="CASCADE"), nullable=False)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
