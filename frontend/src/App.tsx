@@ -9,6 +9,7 @@ import ServicosPage from './pages/ServicosPage'
 import MateriaisPage from './pages/MateriaisPage'
 import RelatoriosPage from './pages/RelatoriosPage'
 import FidelidadePage from './pages/FidelidadePage'
+import WhatsAppPage from './pages/WhatsAppPage'
 import SuportePage from './pages/SuportePage'
 import SuporteLoginPage from './pages/SuporteLoginPage'
 
@@ -54,6 +55,11 @@ function App() {
         <Route path="fidelidade" element={
           <RoleProtectedRoute allowedRoles={['admin', 'manager']}>
             <FidelidadePage />
+          </RoleProtectedRoute>
+        } />
+        <Route path="whatsapp" element={
+          <RoleProtectedRoute allowedRoles={['admin', 'manager']}>
+            <WhatsAppPage />
           </RoleProtectedRoute>
         } />
       </Route>

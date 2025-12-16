@@ -1,6 +1,6 @@
 import React from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { Calendar, Users, LogOut, User, Home, Briefcase, Package, BarChart3, Gift } from 'lucide-react'
+import { Calendar, Users, LogOut, User, Home, Briefcase, Package, BarChart3, Gift, MessageCircle } from 'lucide-react'
 import logoOnSell from '../assets/LogoOnSellSistemas.png'
 
 const Layout: React.FC = () => {
@@ -27,6 +27,7 @@ const Layout: React.FC = () => {
     { path: '/servicos', icon: Briefcase, label: 'Serviços', requiredRole: 'ADMIN_MANAGER' },
     { path: '/materiais', icon: Package, label: 'Materiais', requiredRole: 'ADMIN_MANAGER' },
     { path: '/fidelidade', icon: Gift, label: 'Fidelidade', requiredRole: 'ADMIN_MANAGER' },
+    { path: '/whatsapp', icon: MessageCircle, label: 'WhatsApp', requiredRole: 'ADMIN_MANAGER' },
     { path: '/relatorios', icon: BarChart3, label: 'Relatórios', requiredRole: 'ADMIN_MANAGER' },
   ]
 

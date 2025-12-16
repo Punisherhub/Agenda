@@ -19,7 +19,14 @@ import type {
   PremioUpdate,
   ResgatePremio,
   ResgatePremioCreate,
-  PremioDisponivel
+  PremioDisponivel,
+  WhatsAppConfig,
+  WhatsAppConfigCreate,
+  WhatsAppConfigUpdate,
+  WhatsAppMessageRequest,
+  WhatsAppMessageResponse,
+  WhatsAppTestRequest,
+  ClienteInativo
 } from '../types'
 
 // Em produção, usa VITE_API_URL configurado no Railway
@@ -328,6 +335,51 @@ export const fidelidadeApi = {
     const response = await api.patch(`/fidelidade/resgates/${resgateId}/usar`, null, {
       params: { agendamento_id: agendamentoId }
     })
+    return response.data
+  },
+}
+
+// WhatsApp
+export const whatsappApi = {
+  // Configuração
+  getConfig: async (): Promise<WhatsAppConfig> => {
+    const response = await api.get('/whatsapp/config')
+    return response.data
+  },
+
+  createConfig: async (data: WhatsAppConfigCreate): Promise<WhatsAppConfig> => {
+    const response = await api.post('/whatsapp/config', data)
+    return response.data
+  },
+
+  updateConfig: async (data: WhatsAppConfigUpdate): Promise<WhatsAppConfig> => {
+    const response = await api.put('/whatsapp/config', data)
+    return response.data
+  },
+
+  deleteConfig: async (): Promise<void> => {
+    await api.delete('/whatsapp/config')
+  },
+
+  // Envio de mensagens
+  sendMessage: async (data: WhatsAppMessageRequest): Promise<WhatsAppMessageResponse> => {
+    const response = await api.post('/whatsapp/send', data)
+    return response.data
+  },
+
+  sendTest: async (data: WhatsAppTestRequest): Promise<WhatsAppMessageResponse> => {
+    const response = await api.post('/whatsapp/test', data)
+    return response.data
+  },
+
+  // Reciclagem
+  getClientesInativos: async (): Promise<ClienteInativo[]> => {
+    const response = await api.get('/whatsapp/clientes-inativos')
+    return response.data
+  },
+
+  sendReciclagem: async (clienteId: number): Promise<WhatsAppMessageResponse> => {
+    const response = await api.post(`/whatsapp/send-reciclagem/${clienteId}`)
     return response.data
   },
 }

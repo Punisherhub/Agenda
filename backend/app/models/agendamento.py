@@ -65,6 +65,9 @@ class Agendamento(Base):
     completed_at = Column(DateTime(timezone=True), nullable=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)  # Soft delete (oculta do calendário)
 
+    # WhatsApp notifications
+    lembrete_enviado = Column(Boolean, default=False)  # Controla se já enviou lembrete 24h antes
+
     # Relationships
     cliente = relationship("Cliente", back_populates="agendamentos")
     servico = relationship("Servico", back_populates="agendamentos")

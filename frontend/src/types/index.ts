@@ -333,3 +333,108 @@ export interface PremioDisponivel {
   pode_resgatar: boolean
   pontos_faltantes: number
 }
+
+// ==================== Sistema de WhatsApp ====================
+
+export interface WhatsAppConfig {
+  id: number
+  meta_token: string
+  telefone_id: string
+  template_agendamento: string | null
+  template_lembrete: string | null
+  template_confirmacao: string | null
+  template_cancelamento: string | null
+  template_reciclagem: string | null
+  meta_template_agendamento: string | null
+  meta_template_lembrete: string | null
+  meta_template_confirmacao: string | null
+  meta_template_cancelamento: string | null
+  meta_template_reciclagem: string | null
+  ativado: boolean
+  enviar_agendamento: boolean
+  enviar_lembrete: boolean
+  enviar_confirmacao: boolean
+  enviar_cancelamento: boolean
+  enviar_reciclagem: boolean
+  meses_inatividade: number
+  link_agendamento: string | null
+  estabelecimento_id: number
+  created_at: string
+  updated_at: string | null
+}
+
+export interface WhatsAppConfigCreate {
+  meta_token: string
+  telefone_id: string
+  template_agendamento?: string
+  template_lembrete?: string
+  template_confirmacao?: string
+  template_cancelamento?: string
+  template_reciclagem?: string
+  meta_template_agendamento?: string
+  meta_template_lembrete?: string
+  meta_template_confirmacao?: string
+  meta_template_cancelamento?: string
+  meta_template_reciclagem?: string
+  ativado?: boolean
+  enviar_agendamento?: boolean
+  enviar_lembrete?: boolean
+  enviar_confirmacao?: boolean
+  enviar_cancelamento?: boolean
+  enviar_reciclagem?: boolean
+  meses_inatividade?: number
+  link_agendamento?: string
+  estabelecimento_id?: number
+}
+
+export interface WhatsAppConfigUpdate {
+  meta_token?: string
+  telefone_id?: string
+  template_agendamento?: string
+  template_lembrete?: string
+  template_confirmacao?: string
+  template_cancelamento?: string
+  template_reciclagem?: string
+  meta_template_agendamento?: string
+  meta_template_lembrete?: string
+  meta_template_confirmacao?: string
+  meta_template_cancelamento?: string
+  meta_template_reciclagem?: string
+  ativado?: boolean
+  enviar_agendamento?: boolean
+  enviar_lembrete?: boolean
+  enviar_confirmacao?: boolean
+  enviar_cancelamento?: boolean
+  enviar_reciclagem?: boolean
+  meses_inatividade?: number
+  link_agendamento?: string
+}
+
+export type TipoMensagemWhatsApp = 'AGENDAMENTO' | 'LEMBRETE' | 'CONFIRMACAO' | 'CANCELAMENTO' | 'RECICLAGEM'
+
+export interface WhatsAppMessageRequest {
+  cliente_id: number
+  tipo_mensagem: TipoMensagemWhatsApp
+  agendamento_id?: number
+  mensagem_customizada?: string
+}
+
+export interface WhatsAppMessageResponse {
+  sucesso: boolean
+  mensagem_id: string | null
+  erro: string | null
+  telefone_destino: string
+}
+
+export interface WhatsAppTestRequest {
+  telefone_destino: string
+  mensagem: string
+}
+
+export interface ClienteInativo {
+  cliente_id: number
+  nome: string
+  telefone: string
+  ultimo_agendamento: string | null
+  meses_inativo: number
+}
