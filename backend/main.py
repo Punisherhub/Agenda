@@ -41,8 +41,8 @@ if settings.cors_origins and settings.cors_origins != "*":
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Temporariamente permite todas até debug
-    allow_credentials=False,
+    allow_origins=allowed_origins,  # Lista específica de origens
+    allow_credentials=True,  # Permite envio de tokens de autenticação
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
