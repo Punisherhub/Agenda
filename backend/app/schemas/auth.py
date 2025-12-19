@@ -75,7 +75,7 @@ class UserResponse(BaseModel):
     is_active: bool
     is_verified: bool
     avatar_url: Optional[str] = None
-    timezone: str
+    timezone: Optional[str] = None
     horario_inicio: Optional[str] = None
     horario_fim: Optional[str] = None
     dias_trabalho: Optional[str] = None
