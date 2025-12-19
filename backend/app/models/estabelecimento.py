@@ -39,3 +39,4 @@ class Estabelecimento(Base):
     clientes = relationship("Cliente", back_populates="estabelecimento", cascade="all, delete-orphan")
     agendamentos = relationship("Agendamento", back_populates="estabelecimento", cascade="all, delete-orphan")
     materiais = relationship("Material", back_populates="estabelecimento", cascade="all, delete-orphan")
+    whatsapp_config = relationship("WhatsAppConfig", back_populates="estabelecimento", uselist=False, cascade="all, delete-orphan")

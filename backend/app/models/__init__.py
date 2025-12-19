@@ -9,6 +9,7 @@ from .consumo_material import ConsumoMaterial
 from .configuracao_fidelidade import ConfiguracaoFidelidade
 from .premio import Premio
 from .resgate_premio import ResgatePremio
+from .whatsapp_config import WhatsAppConfig
 
 __all__ = [
     "User",
@@ -25,5 +26,6 @@ __all__ = [
     "ConsumoMaterial",
     "ConfiguracaoFidelidade",
     "Premio",
-    "ResgatePremio"
+    "ResgatePremio",
+    "WhatsAppConfig"
 ]

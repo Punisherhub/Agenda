@@ -6,30 +6,24 @@ from app.database import Base
 
 class WhatsAppConfig(Base):
     """
-    Configurações do WhatsApp Business API (Meta Cloud API) por estabelecimento.
-    Cada estabelecimento pode ter suas próprias credenciais e templates.
+    Configurações do WhatsApp via Evolution API por estabelecimento.
+    Cada estabelecimento pode ter sua própria instância e templates.
     """
     __tablename__ = "whatsapp_configs"
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # Meta WhatsApp Business API Credentials
-    meta_token = Column(String(500), nullable=False)  # Token de acesso da Meta API
-    telefone_id = Column(String(100), nullable=False)  # Phone Number ID da Meta
+    # Evolution API Credentials
+    evolution_api_url = Column(String(500), nullable=False)     # URL da Evolution API (ex: https://evolution.onrender.com)
+    evolution_api_key = Column(String(500), nullable=False)     # API Key da Evolution API
+    evolution_instance_name = Column(String(100), nullable=False)  # Nome da instância WhatsApp
 
-    # Templates de Mensagens (usando placeholders {nome_cliente}, {data}, {hora}, etc.)
+    # Templates de Mensagens (texto livre com placeholders {nome_cliente}, {data}, {hora}, etc.)
     template_agendamento = Column(Text, nullable=True)  # Confirmação de novo agendamento
     template_lembrete = Column(Text, nullable=True)     # Lembrete 24h antes
     template_confirmacao = Column(Text, nullable=True)  # Confirmação do agendamento
     template_cancelamento = Column(Text, nullable=True) # Notificação de cancelamento
     template_reciclagem = Column(Text, nullable=True)   # Reciclagem de clientes inativos
-
-    # Nomes dos Templates HSM aprovados na Meta (necessário para produção)
-    meta_template_agendamento = Column(String(255), nullable=True)    # Ex: "confirmacao_servico_saas"
-    meta_template_lembrete = Column(String(255), nullable=True)       # Ex: "lembrete_24h_saas"
-    meta_template_confirmacao = Column(String(255), nullable=True)    # Ex: "confirmacao_servico_saas"
-    meta_template_cancelamento = Column(String(255), nullable=True)   # Ex: "cancelamento_servico_saas"
-    meta_template_reciclagem = Column(String(255), nullable=True)     # Ex: "aviso_inatividade_personalizado"
 
     # Configurações de envio
     ativado = Column(Boolean, default=False)  # Ativar/desativar WhatsApp para este estabelecimento
