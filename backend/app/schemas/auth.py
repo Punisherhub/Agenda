@@ -78,7 +78,7 @@ class UserResponse(BaseModel):
     timezone: str
     horario_inicio: Optional[str] = None
     horario_fim: Optional[str] = None
-    dias_trabalho: str
+    dias_trabalho: Optional[str] = None
     estabelecimento_id: Optional[int] = None
     estabelecimento_nome: Optional[str] = None
 
