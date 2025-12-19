@@ -28,11 +28,11 @@ class UserList(BaseModel):
 
 def check_admin_permission(current_user: User):
     """Verificar se o usuário tem permissão de administrador ou suporte"""
-    print(f"[USERS] Checking permission for user: {current_user.email}, role: {current_user.role}, role type: {type(current_user.role)}")
-    print(f"[USERS] UserRole.ADMIN: {UserRole.ADMIN}, UserRole.SUPORTE: {UserRole.SUPORTE}")
-    print(f"[USERS] Comparison: role == 'suporte': {current_user.role == 'suporte'}")
+    # Normalizar role para lowercase para comparação (handle string or enum)
+    user_role = current_user.role.lower() if isinstance(current_user.role, str) else current_user.role.value.lower()
+    allowed_roles = ["admin", "suporte"]
 
-    if current_user.role not in [UserRole.ADMIN, UserRole.SUPORTE, "suporte"]:
+    if user_role not in allowed_roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Acesso restrito a administradores e suporte. Role atual: {current_user.role}"

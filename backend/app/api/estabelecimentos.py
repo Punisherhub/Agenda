@@ -13,7 +13,11 @@ router = APIRouter()
 
 def check_manager_permission(current_user: User):
     """Verificar se o usuário tem permissão de gerente, administrador ou suporte"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPORTE, "suporte"]:
+    # Normalizar role para lowercase para comparação (handle string or enum)
+    user_role = current_user.role.lower() if isinstance(current_user.role, str) else current_user.role.value.lower()
+    allowed_roles = ["admin", "manager", "suporte"]
+
+    if user_role not in allowed_roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso restrito a gerentes, administradores e suporte"
