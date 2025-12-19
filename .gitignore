@@ -108,3 +108,6 @@ backend/alembic/versions/*.pyc
 # Production
 /build
 /dist
+
+# Evolution API (apenas local, deploy separado no Render)
+evolution-api/

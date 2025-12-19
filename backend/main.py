@@ -27,17 +27,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": exc.errors()}
     )
 
-# Configuração CORS - Permite todas as origens (desenvolvimento + produção Railway)
+# Configuração CORS - Aceita múltiplas origens Railway
 allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://agenda-onsell.up.railway.app"
+    "https://agenda-onsell.up.railway.app",
+    "https://agenda-production-fdff.up.railway.app",
 ]
+
+# Adicionar origens customizadas via env
+if settings.cors_origins and settings.cors_origins != "*":
+    allowed_origins.extend(settings.cors_origins.split(","))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_origins=["*"],  # Temporariamente permite todas até debug
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],

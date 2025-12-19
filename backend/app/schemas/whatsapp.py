@@ -6,22 +6,17 @@ from datetime import datetime
 # ==================== WhatsAppConfig ====================
 
 class WhatsAppConfigBase(BaseModel):
-    meta_token: str = Field(..., description="Token de acesso da Meta WhatsApp Business API")
-    telefone_id: str = Field(..., description="Phone Number ID da Meta")
+    # Evolution API Credentials
+    evolution_api_url: str = Field(..., description="URL da Evolution API (ex: https://evolution.onrender.com)")
+    evolution_api_key: str = Field(..., description="API Key da Evolution API")
+    evolution_instance_name: str = Field(..., description="Nome da instância WhatsApp")
 
-    # Templates (para referência interna e modo fallback)
+    # Templates (texto livre com placeholders)
     template_agendamento: Optional[str] = Field(None, description="Template para novo agendamento")
     template_lembrete: Optional[str] = Field(None, description="Template para lembrete 24h antes")
     template_confirmacao: Optional[str] = Field(None, description="Template para confirmação")
     template_cancelamento: Optional[str] = Field(None, description="Template para cancelamento")
     template_reciclagem: Optional[str] = Field(None, description="Template para reciclagem")
-
-    # Nomes dos Templates HSM aprovados na Meta (PRODUÇÃO)
-    meta_template_agendamento: Optional[str] = Field(None, description="Nome do template HSM aprovado para agendamento")
-    meta_template_lembrete: Optional[str] = Field(None, description="Nome do template HSM aprovado para lembrete")
-    meta_template_confirmacao: Optional[str] = Field(None, description="Nome do template HSM aprovado para confirmação")
-    meta_template_cancelamento: Optional[str] = Field(None, description="Nome do template HSM aprovado para cancelamento")
-    meta_template_reciclagem: Optional[str] = Field(None, description="Nome do template HSM aprovado para reciclagem")
 
     # Configurações de envio
     ativado: bool = False
@@ -41,18 +36,19 @@ class WhatsAppConfigCreate(WhatsAppConfigBase):
 
 
 class WhatsAppConfigUpdate(BaseModel):
-    meta_token: Optional[str] = None
-    telefone_id: Optional[str] = None
+    # Evolution API Credentials
+    evolution_api_url: Optional[str] = None
+    evolution_api_key: Optional[str] = None
+    evolution_instance_name: Optional[str] = None
+
+    # Templates
     template_agendamento: Optional[str] = None
     template_lembrete: Optional[str] = None
     template_confirmacao: Optional[str] = None
     template_cancelamento: Optional[str] = None
     template_reciclagem: Optional[str] = None
-    meta_template_agendamento: Optional[str] = None
-    meta_template_lembrete: Optional[str] = None
-    meta_template_confirmacao: Optional[str] = None
-    meta_template_cancelamento: Optional[str] = None
-    meta_template_reciclagem: Optional[str] = None
+
+    # Configurações
     ativado: Optional[bool] = None
     enviar_agendamento: Optional[bool] = None
     enviar_lembrete: Optional[bool] = None
@@ -84,7 +80,7 @@ class WhatsAppMessageRequest(BaseModel):
 
 class WhatsAppMessageResponse(BaseModel):
     sucesso: bool
-    mensagem_id: Optional[str] = None  # ID da mensagem retornado pela Meta API
+    mensagem_id: Optional[str] = None  # ID da mensagem retornado pela Evolution API
     erro: Optional[str] = None
     telefone_destino: str
 
