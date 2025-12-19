@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from app.api import auth, users, empresas, estabelecimentos, servicos, clientes, agendamentos, materiais, relatorios, fidelidade
+from app.api import auth, users, empresas, estabelecimentos, servicos, clientes, agendamentos, materiais, relatorios, fidelidade, whatsapp
 from app.config import settings
 from app.database import engine, Base
 
@@ -27,16 +27,20 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": exc.errors()}
     )
 
-# Configuração CORS
-# Em produção, configure CORS_ORIGINS com a URL do frontend
-origins = settings.cors_origins.split(",") if settings.cors_origins != "*" else ["*"]
+# Configuração CORS - Permite todas as origens (desenvolvimento + produção Railway)
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://agenda-onsell.up.railway.app"
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Rotas de autenticação
@@ -57,6 +61,9 @@ app.include_router(agendamentos.router, prefix="/agendamentos", tags=["📅 Agen
 
 # Rotas de fidelidade
 app.include_router(fidelidade.router, tags=["🎁 Fidelidade"])
+
+# Rotas de WhatsApp
+app.include_router(whatsapp.router, tags=["💬 WhatsApp"])
 
 # Rotas de relatórios
 app.include_router(relatorios.router, prefix="/relatorios", tags=["📊 Relatórios"])
