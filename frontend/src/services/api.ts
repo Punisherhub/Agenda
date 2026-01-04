@@ -341,39 +341,39 @@ export const whatsappApi = {
     return response.data
   },
 
-  // WAHA Session Management (todos em /whatsapp agora)
+  // WAHA Session Management
   getConnectionStatus: async (): Promise<WhatsAppConnectionStatus> => {
-    const response = await api.get('/whatsapp/status')
+    const response = await api.get('/waha/status')
     return response.data
   },
 
   startWahaSession: async () => {
-    const response = await api.post('/whatsapp/start-session')
+    const response = await api.post('/waha/start-session')
     return response.data
   },
 
   stopWahaSession: async () => {
-    const response = await api.post('/whatsapp/stop-session')
+    const response = await api.post('/waha/stop-session')
     return response.data
   },
 
   getWahaQRCode: async (): Promise<{ qr: string; status: string }> => {
-    const response = await api.get('/whatsapp/qrcode')
+    const response = await api.get('/waha/qrcode')
     return response.data
   },
 
   getWahaStatus: async (): Promise<WhatsAppConnectionStatus> => {
-    const response = await api.get('/whatsapp/status')
+    const response = await api.get('/waha/status')
     return response.data
   },
 
   logoutWahaSession: async () => {
-    const response = await api.post('/whatsapp/logout')
+    const response = await api.post('/waha/logout')
     return response.data
   },
 
   listWahaSessions: async () => {
-    const response = await api.get('/whatsapp/sessions')
+    const response = await api.get('/waha/sessions')
     return response.data
   },
 }
