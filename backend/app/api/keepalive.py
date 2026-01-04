@@ -23,7 +23,7 @@ def health_check():
     }
 
 
-@router.get("/ping-waha")
+@router.api_route("/ping-waha", methods=["GET", "HEAD"])
 def ping_waha_services(db: Session = Depends(get_db)):
     """
     Faz ping em todas as instâncias WAHA configuradas para evitar hibernação.
