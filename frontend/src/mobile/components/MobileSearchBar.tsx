@@ -1,4 +1,5 @@
 import React from 'react'
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 
 interface MobileSearchBarProps {
   value: string
@@ -13,8 +14,8 @@ const MobileSearchBar: React.FC<MobileSearchBarProps> = ({
 }) => {
   return (
     <div className="relative">
-      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xl">
-        🔍
+      <div className="absolute left-3 top-1/2 -translate-y-1/2">
+        <MagnifyingGlassIcon className="w-5 h-5 text-gray-400" />
       </div>
       <input
         type="text"

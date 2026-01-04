@@ -24,7 +24,11 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ### Configuração
 ```env
-DATABASE_URL=postgresql://sasconv_user:d5DezoH9fkvGQvAldNebbIAU0FWcm4Fe@dpg-d2195c6uk2gs7380vemg-a.virginia-postgres.render.com:5432/agenda_db?sslmode=require
+# Create a .env file in backend/ directory with:
+DATABASE_URL=postgresql://user:password@host:5432/database?sslmode=require
+#
+# NEVER commit credentials to git!
+# The actual connection string is configured via environment variables (see backend/app/config.py)
 ```
 
 ### Migrations
@@ -67,6 +71,7 @@ alembic revision --autogenerate -m "description"
 ## 🔐 Autenticação
 
 Sistema JWT com roles:
+- `SUPORTE`: Suporte técnico (acesso cross-company)
 - `ADMIN`: Administrador da empresa
 - `MANAGER`: Gerente do estabelecimento
 - `VENDEDOR`: Vendedor/Funcionário
@@ -74,7 +79,7 @@ Sistema JWT com roles:
 
 **Regras:**
 - Todos os funcionários podem fazer agendamentos
-- Usuários veem apenas dados do seu estabelecimento
+- Usuários veem apenas dados do seu estabelecimento (exceto SUPORTE)
 - Roles são organizacionais, não restritivas
 
 ## 📝 Teste da API
@@ -91,3 +96,7 @@ curl -X POST http://localhost:8000/auth/login \
 curl -X GET http://localhost:8000/agendamentos/ \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+## 📖 Documentação Completa
+
+Para documentação completa do projeto, consulte `CLAUDE.md` na raiz do repositório.

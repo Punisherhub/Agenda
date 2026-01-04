@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from app.api import auth, users, empresas, estabelecimentos, servicos, clientes, agendamentos, materiais, relatorios, fidelidade, whatsapp
+from app.api import auth, users, empresas, estabelecimentos, servicos, clientes, agendamentos, materiais, relatorios, fidelidade, whatsapp, waha, waha_webhook
 from app.config import settings
 from app.database import engine, Base
 
@@ -67,8 +67,10 @@ app.include_router(agendamentos.router, prefix="/agendamentos", tags=["📅 Agen
 # Rotas de fidelidade
 app.include_router(fidelidade.router, tags=["🎁 Fidelidade"])
 
-# Rotas de WhatsApp
+# Rotas de WhatsApp (WAHA)
 app.include_router(whatsapp.router, tags=["💬 WhatsApp"])
+app.include_router(waha.router, prefix="/waha", tags=["📱 WAHA"])
+app.include_router(waha_webhook.router, tags=["🔔 WAHA Webhooks"])
 
 # Rotas de relatórios
 app.include_router(relatorios.router, prefix="/relatorios", tags=["📊 Relatórios"])
@@ -86,4 +88,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

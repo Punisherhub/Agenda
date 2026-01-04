@@ -66,11 +66,11 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       try {
-        console.log('🔍 MOBILE MODAL - useEffect executado')
+        console.log('MOBILE MODAL - useEffect executado')
         console.log('  agendamento recebido:', agendamento)
 
         if (agendamento) {
-          console.log('✏️ MODO EDICAO - Preenchendo com dados do agendamento ID:', agendamento.id)
+          console.log('MODO EDICAO - Preenchendo com dados do agendamento ID:', agendamento.id)
           // Modo edição - preencher com dados do agendamento
           const cliente = clientes.find(c => c.id === agendamento.cliente_id)
           setClienteId(agendamento.cliente_id)
@@ -318,7 +318,7 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
     const dataInicioISO = `${dataInicio}T${horaInicio}:00`
     const dataFimISO = `${dataInicio}T${horaFim}:00`
 
-    console.log('📅 MOBILE MODAL - Datas sendo enviadas:')
+    console.log('MOBILE MODAL - Datas sendo enviadas:')
     console.log('  dataInicio:', dataInicio, 'horaInicio:', horaInicio)
     console.log('  dataInicioISO (naive):', dataInicioISO)
     console.log('  horaFim:', horaFim)

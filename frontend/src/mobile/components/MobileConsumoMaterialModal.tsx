@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { CubeIcon } from '@heroicons/react/24/outline'
 import { materiaisApi } from '../../services/api'
 import { Material, ConsumoMaterialCreate } from '../../types'
 
@@ -138,13 +139,13 @@ const MobileConsumoMaterialModal: React.FC<MobileConsumoMaterialModalProps> = ({
                 onClick={handleAddConsumo}
                 className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold active:bg-green-700"
               >
-                ➕ Adicionar
+                Adicionar
               </button>
             </div>
 
             {consumos.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
-                <p className="text-3xl mb-2">📦</p>
+                <CubeIcon className="w-12 h-12 mx-auto mb-2 text-gray-400" />
                 <p>Nenhum material adicionado</p>
                 <p className="text-sm mt-1">Clique em "Adicionar" para começar</p>
               </div>
@@ -161,7 +162,7 @@ const MobileConsumoMaterialModal: React.FC<MobileConsumoMaterialModalProps> = ({
                           onClick={() => handleRemoveConsumo(index)}
                           className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm active:bg-red-700"
                         >
-                          🗑️ Remover
+                          Remover
                         </button>
                       </div>
 
@@ -243,7 +244,7 @@ const MobileConsumoMaterialModal: React.FC<MobileConsumoMaterialModalProps> = ({
             className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-bold text-lg active:bg-green-700 disabled:bg-gray-400"
             disabled={loading || consumos.length === 0}
           >
-            {loading ? '⟳ Registrando...' : '✅ Concluir Agendamento'}
+            {loading ? 'Registrando...' : 'Concluir Agendamento'}
           </button>
           <button
             type="button"

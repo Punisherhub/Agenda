@@ -37,11 +37,11 @@ const MobileMateriaisPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['materiais-mobile-safe'] })
       setIsModalOpen(false)
       setEditingMaterial(null)
-      alert('✅ Material criado com sucesso!')
+      alert('Material criado com sucesso!')
     },
     onError: (error: any) => {
       const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
-      alert(`❌ Erro ao criar material:\n${errorMsg}`)
+      alert(`Erro ao criar material:\n${errorMsg}`)
     }
   })
 
@@ -53,11 +53,11 @@ const MobileMateriaisPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['materiais-mobile-safe'] })
       setIsModalOpen(false)
       setEditingMaterial(null)
-      alert('✅ Material atualizado com sucesso!')
+      alert('Material atualizado com sucesso!')
     },
     onError: (error: any) => {
       const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
-      alert(`❌ Erro ao atualizar material:\n${errorMsg}`)
+      alert(`Erro ao atualizar material:\n${errorMsg}`)
     }
   })
 
@@ -66,11 +66,11 @@ const MobileMateriaisPage: React.FC = () => {
     mutationFn: materiaisApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materiais-mobile-safe'] })
-      alert('✅ Material deletado com sucesso!')
+      alert('Material deletado com sucesso!')
     },
     onError: (error: any) => {
       const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
-      alert(`❌ Erro ao deletar material:\n${errorMsg}`)
+      alert(`Erro ao deletar material:\n${errorMsg}`)
     }
   })
 

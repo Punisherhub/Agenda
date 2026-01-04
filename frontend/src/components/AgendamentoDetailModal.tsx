@@ -51,8 +51,6 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
     switch (status) {
       case 'AGENDADO':
         return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'CONFIRMADO':
-        return 'bg-green-100 text-green-800 border-green-200'
       case 'CONCLUIDO':
         return 'bg-emerald-100 text-emerald-800 border-emerald-200'
       case 'CANCELADO':
@@ -68,8 +66,6 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
     switch (status) {
       case 'AGENDADO':
         return 'Agendado'
-      case 'CONFIRMADO':
-        return 'Confirmado'
       case 'CONCLUIDO':
         return 'Concluído'
       case 'CANCELADO':
@@ -418,7 +414,7 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-3">Ações Disponíveis</h3>
               <div className="flex flex-wrap gap-2">
-                {['AGENDADO', 'CONFIRMADO'].includes(agendamento.status) && (
+                {agendamento.status === 'AGENDADO' && (
                   <>
                     <button
                       onClick={handleConcluirComConsumo}
@@ -439,7 +435,7 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
                   </>
                 )}
 
-                {['AGENDADO', 'CONFIRMADO'].includes(agendamento.status) && (
+                {agendamento.status === 'AGENDADO' && (
                   <button
                     onClick={() => handleUpdateStatus('NAO_COMPARECEU')}
                     disabled={updating}
@@ -452,12 +448,12 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
 
                 {canReativar && (
                   <button
-                    onClick={() => handleUpdateStatus('CONFIRMADO')}
+                    onClick={() => handleUpdateStatus('AGENDADO')}
                     disabled={updating}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors text-sm inline-flex items-center justify-center"
                   >
                     {updating && <span className="inline-block animate-spin mr-2">⟳</span>}
-                    {updating ? 'Atualizando...' : 'Reagendar / Confirmar'}
+                    {updating ? 'Atualizando...' : 'Reagendar'}
                   </button>
                 )}
               </div>

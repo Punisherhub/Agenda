@@ -166,10 +166,7 @@ class ServicoService:
         agendamentos_futuros = db.query(Agendamento).filter(
             Agendamento.servico_id == servico_id,
             Agendamento.data_inicio > datetime.now(),
-            Agendamento.status.in_([
-                StatusAgendamento.AGENDADO,
-                StatusAgendamento.CONFIRMADO
-            ])
+            Agendamento.status == StatusAgendamento.AGENDADO
         ).count()
 
         if agendamentos_futuros > 0:

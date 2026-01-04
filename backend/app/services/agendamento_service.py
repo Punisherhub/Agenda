@@ -183,8 +183,8 @@ class AgendamentoService:
         # WhatsApp: Notificar novo agendamento (não-bloqueante)
         try:
             from app.services.whatsapp_service import WhatsAppService
-            WhatsAppService.notify_novo_agendamento(db, db_agendamento)
-            print(f"[AGENDAMENTO] Notificação WhatsApp enviada para novo agendamento ID {db_agendamento.id}")
+            WhatsAppService.notify_novo_agendamento(db=db, agendamento=db_agendamento)
+            print(f"[AGENDAMENTO] Tentativa de envio de notificação WhatsApp para agendamento ID {db_agendamento.id}")
         except Exception as e:
             print(f"[AGENDAMENTO] Erro ao enviar notificação WhatsApp: {e}")
             # Não falha a criação do agendamento se WhatsApp falhar
@@ -293,12 +293,12 @@ class AgendamentoService:
         # WhatsApp: Notificar mudança de status (não-bloqueante)
         try:
             from app.services.whatsapp_service import WhatsAppService
-            if status_valor == StatusAgendamento.CONFIRMADO.value:
-                WhatsAppService.notify_confirmacao(db, agendamento)
-                print(f"[AGENDAMENTO] Notificação WhatsApp de confirmação enviada para agendamento ID {agendamento.id}")
+            if status_valor == StatusAgendamento.CONCLUIDO.value:
+                WhatsAppService.notify_conclusao(db=db, agendamento=agendamento)
+                print(f"[AGENDAMENTO] Tentativa de envio de notificação de conclusão para agendamento ID {agendamento.id}")
             elif status_valor == StatusAgendamento.CANCELADO.value:
-                WhatsAppService.notify_cancelamento(db, agendamento)
-                print(f"[AGENDAMENTO] Notificação WhatsApp de cancelamento enviada para agendamento ID {agendamento.id}")
+                WhatsAppService.notify_cancelamento(db=db, agendamento=agendamento)
+                print(f"[AGENDAMENTO] Tentativa de envio de notificação de cancelamento para agendamento ID {agendamento.id}")
         except Exception as e:
             print(f"[AGENDAMENTO] Erro ao enviar notificação WhatsApp: {e}")
             # Não falha a atualização do agendamento se WhatsApp falhar

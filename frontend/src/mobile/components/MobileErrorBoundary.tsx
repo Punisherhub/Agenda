@@ -35,7 +35,7 @@ class MobileErrorBoundary extends Component<Props, State> {
         <div className="fixed inset-0 bg-red-50 p-4 overflow-y-auto z-50">
           <div className="bg-white rounded-lg shadow-lg p-4">
             <h2 className="text-xl font-bold text-red-600 mb-4">
-              ⚠️ Erro Detectado
+              Erro Detectado
             </h2>
 
             <div className="space-y-3">
@@ -72,7 +72,7 @@ class MobileErrorBoundary extends Component<Props, State> {
               }}
               className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-medium"
             >
-              🔄 Recarregar Página
+              Recarregar Página
             </button>
           </div>
         </div>

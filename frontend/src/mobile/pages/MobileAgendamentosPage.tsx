@@ -99,11 +99,11 @@ const MobileAgendamentosPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
       setIsModalOpen(false)
-      alert('✅ Agendamento criado com sucesso!')
+      alert('Agendamento criado com sucesso!')
     },
     onError: (error: any) => {
       const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
-      alert(`❌ Erro ao criar agendamento:\n${errorMsg}`)
+      alert(`Erro ao criar agendamento:\n${errorMsg}`)
     }
   })
 
@@ -141,12 +141,12 @@ const MobileAgendamentosPage: React.FC = () => {
       setIsModalOpen(false)
       setIsEditMode(false)
       setSelectedAgendamento(null)
-      alert('✅ Agendamento atualizado com sucesso!')
+      alert('Agendamento atualizado com sucesso!')
     },
     onError: (error: any) => {
       console.error('Erro ao atualizar agendamento:', error)
       const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
-      alert(`❌ Erro ao atualizar agendamento:\n${errorMsg}`)
+      alert(`Erro ao atualizar agendamento:\n${errorMsg}`)
     }
   })
 
@@ -231,16 +231,16 @@ const MobileAgendamentosPage: React.FC = () => {
       console.log('Data recebida:', data)
 
       if (isEditMode && selectedAgendamento) {
-        console.log('🔄 MODO EDICAO: Atualizando agendamento ID:', selectedAgendamento.id)
+        console.log('MODO EDICAO: Atualizando agendamento ID:', selectedAgendamento.id)
         console.log('Dados para UPDATE:', data)
         await updateMutation.mutateAsync({ id: selectedAgendamento.id, data })
       } else {
-        console.log('➕ MODO CRIACAO: Criando novo agendamento')
+        console.log('MODO CRIACAO: Criando novo agendamento')
         console.log('Dados para CREATE:', data)
         await createMutation.mutateAsync(data)
       }
     } catch (error) {
-      console.error('❌ Erro ao salvar agendamento:', error)
+      console.error('Erro ao salvar agendamento:', error)
       // Erro já tratado no onError da mutation
     }
   }
@@ -289,7 +289,7 @@ const MobileAgendamentosPage: React.FC = () => {
 
       setIsConsumoModalOpen(false)
       setSelectedAgendamento(null)
-      alert('✅ Agendamento concluído com sucesso!')
+      alert('Agendamento concluído com sucesso!')
     } catch (error) {
       console.error('Erro ao registrar consumo:', error)
       throw error
@@ -312,8 +312,6 @@ const MobileAgendamentosPage: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'AGENDADO': return 'bg-blue-100 text-blue-800'
-      case 'CONFIRMADO': return 'bg-green-100 text-green-800'
-      case 'EM_ANDAMENTO': return 'bg-yellow-100 text-yellow-800'
       case 'CONCLUIDO': return 'bg-emerald-100 text-emerald-800'
       case 'CANCELADO': return 'bg-red-100 text-red-800'
       case 'NAO_COMPARECEU': return 'bg-gray-100 text-gray-800'
@@ -395,8 +393,6 @@ const MobileAgendamentosPage: React.FC = () => {
               >
                 <option value="">Todos</option>
                 <option value="AGENDADO">Agendado</option>
-                <option value="CONFIRMADO">Confirmado</option>
-                <option value="EM_ANDAMENTO">Em Andamento</option>
                 <option value="CONCLUIDO">Concluído</option>
                 <option value="CANCELADO">Cancelado</option>
                 <option value="NAO_COMPARECEU">Não Compareceu</option>

@@ -26,7 +26,8 @@ import type {
   WhatsAppMessageRequest,
   WhatsAppMessageResponse,
   WhatsAppTestRequest,
-  ClienteInativo
+  ClienteInativo,
+  WhatsAppConnectionStatus
 } from '../types'
 
 // Em produção, usa VITE_API_URL configurado no Railway
@@ -208,11 +209,6 @@ export const agendamentosApi = {
     const response = await api.delete(`/agendamentos/${id}/excluir`)
     return response.data
   },
-
-  confirm: async (id: number): Promise<Agendamento> => {
-    const response = await api.post(`/agendamentos/${id}/confirmar`)
-    return response.data
-  },
 }
 
 // Materiais
@@ -258,21 +254,9 @@ export const materiaisApi = {
   },
 }
 
-// Relatórios
-export const relatoriosApi = {
-  getDashboard: async (params?: {
-    data_inicio?: string
-    data_fim?: string
-  }) => {
-    const response = await api.get('/relatorios/dashboard', { params })
-    return response.data
-  },
-}
-
 // Fidelidade
 export const fidelidadeApi = {
-  // Configuração
-  getConfiguracao: async (): Promise<ConfiguracaoFidelidade> => {
+  getConfiguracao: async (): Promise<ConfiguracaoFidelidade | null> => {
     const response = await api.get('/fidelidade/configuracao')
     return response.data
   },
@@ -287,16 +271,10 @@ export const fidelidadeApi = {
     return response.data
   },
 
-  // Prêmios
-  listPremios: async (apenasAtivos: boolean = true): Promise<Premio[]> => {
+  listPremios: async (incluirInativos?: boolean): Promise<Premio[]> => {
     const response = await api.get('/fidelidade/premios', {
-      params: { apenas_ativos: apenasAtivos }
+      params: { incluir_inativos: incluirInativos }
     })
-    return response.data
-  },
-
-  getPremio: async (id: number): Promise<Premio> => {
-    const response = await api.get(`/fidelidade/premios/${id}`)
     return response.data
   },
 
@@ -315,33 +293,19 @@ export const fidelidadeApi = {
     return response.data
   },
 
-  // Resgates
+  resgatarPremio: async (data: ResgatePremioCreate): Promise<ResgatePremio> => {
+    const response = await api.post('/fidelidade/resgates', data)
+    return response.data
+  },
+
   listarPremiosDisponiveis: async (clienteId: number): Promise<PremioDisponivel[]> => {
     const response = await api.get(`/fidelidade/premios-disponiveis/${clienteId}`)
-    return response.data
-  },
-
-  resgatarPremio: async (data: ResgatePremioCreate): Promise<ResgatePremio> => {
-    const response = await api.post('/fidelidade/resgatar', data)
-    return response.data
-  },
-
-  listarResgates: async (clienteId: number): Promise<ResgatePremio[]> => {
-    const response = await api.get(`/fidelidade/resgates/${clienteId}`)
-    return response.data
-  },
-
-  usarResgate: async (resgateId: number, agendamentoId: number): Promise<ResgatePremio> => {
-    const response = await api.patch(`/fidelidade/resgates/${resgateId}/usar`, null, {
-      params: { agendamento_id: agendamentoId }
-    })
     return response.data
   },
 }
 
 // WhatsApp
 export const whatsappApi = {
-  // Configuração
   getConfig: async (): Promise<WhatsAppConfig> => {
     const response = await api.get('/whatsapp/config')
     return response.data
@@ -357,11 +321,6 @@ export const whatsappApi = {
     return response.data
   },
 
-  deleteConfig: async (): Promise<void> => {
-    await api.delete('/whatsapp/config')
-  },
-
-  // Envio de mensagens
   sendMessage: async (data: WhatsAppMessageRequest): Promise<WhatsAppMessageResponse> => {
     const response = await api.post('/whatsapp/send', data)
     return response.data
@@ -372,7 +331,6 @@ export const whatsappApi = {
     return response.data
   },
 
-  // Reciclagem
   getClientesInativos: async (): Promise<ClienteInativo[]> => {
     const response = await api.get('/whatsapp/clientes-inativos')
     return response.data
@@ -382,6 +340,54 @@ export const whatsappApi = {
     const response = await api.post(`/whatsapp/send-reciclagem/${clienteId}`)
     return response.data
   },
+
+  // WAHA Session Management (todos em /whatsapp agora)
+  getConnectionStatus: async (): Promise<WhatsAppConnectionStatus> => {
+    const response = await api.get('/whatsapp/status')
+    return response.data
+  },
+
+  startWahaSession: async () => {
+    const response = await api.post('/whatsapp/start-session')
+    return response.data
+  },
+
+  stopWahaSession: async () => {
+    const response = await api.post('/whatsapp/stop-session')
+    return response.data
+  },
+
+  getWahaQRCode: async (): Promise<{ qr: string; status: string }> => {
+    const response = await api.get('/whatsapp/qrcode')
+    return response.data
+  },
+
+  getWahaStatus: async (): Promise<WhatsAppConnectionStatus> => {
+    const response = await api.get('/whatsapp/status')
+    return response.data
+  },
+
+  logoutWahaSession: async () => {
+    const response = await api.post('/whatsapp/logout')
+    return response.data
+  },
+
+  listWahaSessions: async () => {
+    const response = await api.get('/whatsapp/sessions')
+    return response.data
+  },
+}
+
+// Relatórios
+export const relatoriosApi = {
+  getDashboard: async (params?: {
+    data_inicio?: string
+    data_fim?: string
+  }) => {
+    const response = await api.get('/relatorios/dashboard', { params })
+    return response.data
+  },
 }
 
 export default api
+

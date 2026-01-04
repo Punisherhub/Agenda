@@ -234,22 +234,3 @@ async def excluir_agendamento(
     )
 
     return {"message": f"Agendamento {agendamento_id} excluído permanentemente"}
-
-
-@router.post("/{agendamento_id}/confirmar", response_model=AgendamentoResponse)
-async def confirmar_agendamento(
-    agendamento_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """Confirmar agendamento"""
-    check_user_has_estabelecimento(current_user)
-
-    agendamento = AgendamentoService.update_status(
-        db=db,
-        agendamento_id=agendamento_id,
-        novo_status=StatusAgendamento.CONFIRMADO,
-        current_user=current_user
-    )
-
-    return agendamento

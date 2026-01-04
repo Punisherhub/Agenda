@@ -104,9 +104,6 @@ const Calendar: React.FC<CalendarProps> = ({
         // Usar cor do serviço para agendamentos
         backgroundColor = servico?.cor || '#3b82f6'
         break
-      case 'CONFIRMADO':
-        backgroundColor = '#10b981' // green
-        break
       case 'CONCLUIDO':
         backgroundColor = '#059669' // emerald escuro
         fontWeight = 'bold'

@@ -1,9 +1,11 @@
+"""
+Serviço de WhatsApp usando WAHA (WhatsApp HTTP API)
+"""
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
-import requests
 import logging
 
 from app.models import WhatsAppConfig, Cliente, Agendamento, User, Estabelecimento
@@ -14,18 +16,19 @@ from app.schemas.whatsapp import (
     WhatsAppMessageResponse,
     WhatsAppTestRequest
 )
+from app.services.waha_service import WAHAService
 
 logger = logging.getLogger(__name__)
 
 
 class WhatsAppService:
-    """Service para gerenciar configuração do WhatsApp e envio de mensagens via Evolution API"""
+    """Service para gerenciar WhatsApp via WAHA"""
 
     # ==================== Configuração ====================
 
     @staticmethod
     def get_config(db: Session, estabelecimento_id: int) -> Optional[WhatsAppConfig]:
-        """Busca configuração do WhatsApp do estabelecimento"""
+        """Busca configuração WAHA do estabelecimento"""
         return db.query(WhatsAppConfig).filter(
             WhatsAppConfig.estabelecimento_id == estabelecimento_id
         ).first()
@@ -35,13 +38,13 @@ class WhatsAppService:
         db: Session,
         config_data: WhatsAppConfigCreate
     ) -> WhatsAppConfig:
-        """Cria configuração do WhatsApp"""
-        # Verifica se já existe configuração
+        """Cria configuração WAHA"""
+        # Verifica se já existe
         existing = WhatsAppService.get_config(db, config_data.estabelecimento_id)
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Configuração do WhatsApp já existe para este estabelecimento"
+                detail="Configuração do WhatsApp já existe"
             )
 
         config = WhatsAppConfig(**config_data.model_dump())
@@ -56,12 +59,12 @@ class WhatsAppService:
         estabelecimento_id: int,
         config_data: WhatsAppConfigUpdate
     ) -> WhatsAppConfig:
-        """Atualiza configuração do WhatsApp"""
+        """Atualiza configuração WAHA"""
         config = WhatsAppService.get_config(db, estabelecimento_id)
         if not config:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Configuração do WhatsApp não encontrada"
+                detail="Configuração não encontrada"
             )
 
         update_data = config_data.model_dump(exclude_unset=True)
@@ -75,27 +78,25 @@ class WhatsAppService:
 
     @staticmethod
     def delete_config(db: Session, estabelecimento_id: int) -> None:
-        """Remove configuração do WhatsApp"""
+        """Remove configuração WAHA"""
         config = WhatsAppService.get_config(db, estabelecimento_id)
         if not config:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Configuração do WhatsApp não encontrada"
+                detail="Configuração não encontrada"
             )
 
         db.delete(config)
         db.commit()
 
-    # ==================== Envio de Mensagens ====================
+    # ==================== Utilidades ====================
 
     @staticmethod
     def _format_phone_number(phone: str) -> str:
         """
-        Formata número de telefone para o padrão Evolution API.
-        Remove caracteres especiais e garante código do país.
+        Formata número para padrão internacional.
         Exemplo: (11) 99999-9999 -> 5511999999999
         """
-        # Remove caracteres não numéricos
         clean_phone = ''.join(filter(str.isdigit, phone))
 
         # Adiciona código do país se não tiver
@@ -106,74 +107,70 @@ class WhatsAppService:
 
     @staticmethod
     def _replace_placeholders(template: str, data: Dict[str, Any]) -> str:
-        """Substitui placeholders {nome_cliente}, {data}, {hora}, etc. no template"""
-        result = template
+        """Substitui placeholders no template"""
+        message = template
         for key, value in data.items():
             placeholder = f"{{{key}}}"
-            result = result.replace(placeholder, str(value))
-        return result
+            message = message.replace(placeholder, str(value))
+        return message
+
+    # ==================== Envio de Mensagens ====================
 
     @staticmethod
-    def _get_template_data_from_agendamento(db: Session, agendamento: Agendamento) -> Dict[str, Any]:
-        """Extrai dados do agendamento para preencher templates"""
-        cliente = db.query(Cliente).filter(Cliente.id == agendamento.cliente_id).first()
-        vendedor = db.query(User).filter(User.id == agendamento.vendedor_id).first() if agendamento.vendedor_id else None
+    def send_test_message(
+        db: Session,
+        estabelecimento_id: int,
+        test_request: WhatsAppTestRequest
+    ) -> WhatsAppMessageResponse:
+        """Envia mensagem de teste via WAHA"""
+        print("\n" + "=" * 80)
+        print("WHATSAPP_SERVICE - ENVIO DE TESTE")
+        print(f"Estabelecimento: {estabelecimento_id}")
+        print(f"Telefone: {test_request.telefone}")
+        print(f"Mensagem: {test_request.mensagem}")
+        print("=" * 80)
 
-        data_inicio = agendamento.data_inicio
-        data_fim = agendamento.data_fim
+        # Busca config
+        config = WhatsAppService.get_config(db, estabelecimento_id)
+        if not config:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Configuração WAHA não encontrada"
+            )
 
-        return {
-            'nome_cliente': cliente.nome if cliente else 'Cliente',
-            'telefone_cliente': cliente.telefone if cliente else '',
-            'email_cliente': cliente.email if cliente else '',
-            'data': data_inicio.strftime('%d/%m/%Y') if data_inicio else '',
-            'hora': data_inicio.strftime('%H:%M') if data_inicio else '',
-            'hora_fim': data_fim.strftime('%H:%M') if data_fim else '',
-            'servico': agendamento.servico.nome if agendamento.servico else agendamento.servico_personalizado_nome or 'Serviço',
-            'vendedor': vendedor.full_name if vendedor else 'Nossa equipe',
-            'valor': f"R$ {agendamento.valor_final:.2f}" if agendamento.valor_final else '',
-            'status': agendamento.status.value if agendamento.status else '',
-        }
-
-    @staticmethod
-    def _send_evolution_message(
-        evolution_api_url: str,
-        evolution_api_key: str,
-        instance_name: str,
-        to_phone: str,
-        message_text: str
-    ) -> Dict[str, Any]:
-        """
-        Envia mensagem via Evolution API.
-
-        Docs: https://doc.evolution-api.com/v2/pt/endpoints/send-message
-        """
-        url = f"{evolution_api_url.rstrip('/')}/message/sendText/{instance_name}"
-
-        headers = {
-            "apikey": evolution_api_key,
-            "Content-Type": "application/json"
-        }
-
-        payload = {
-            "number": to_phone,
-            "text": message_text
-        }
+        # Formata telefone
+        formatted_phone = WhatsAppService._format_phone_number(test_request.telefone)
+        print(f"Telefone formatado: {formatted_phone}")
 
         try:
-            logger.info(f"Enviando mensagem WhatsApp para {to_phone} via Evolution API")
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
-            response.raise_for_status()
-            result = response.json()
-            logger.info(f"Mensagem enviada com sucesso: {result}")
-            return result
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Erro ao enviar mensagem WhatsApp: {str(e)}")
-            if hasattr(e, 'response') and e.response is not None:
-                logger.error(f"Resposta da API: {e.response.text}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Erro ao enviar mensagem WhatsApp: {str(e)}"
+            # Envia via WAHA
+            result = WAHAService.send_text_message(
+                waha_url=config.waha_url,
+                waha_api_key=config.waha_api_key,
+                session_name=config.waha_session_name,
+                to_phone=formatted_phone,
+                message_text=test_request.mensagem
+            )
+
+            print(f"WAHA Response: {result}")
+
+            # Extrai message_id corretamente
+            message_id = result.get('key', {}).get('id')
+            print(f"Message ID extraído: {message_id}")
+
+            return WhatsAppMessageResponse(
+                sucesso=True,
+                mensagem_id=message_id,
+                telefone_destino=formatted_phone
+            )
+
+        except Exception as e:
+            print(f"ERRO: {type(e).__name__} - {str(e)}")
+            logger.error(f"Erro ao enviar teste: {str(e)}")
+            return WhatsAppMessageResponse(
+                sucesso=False,
+                erro=str(e),
+                telefone_destino=formatted_phone
             )
 
     @staticmethod
@@ -182,143 +179,154 @@ class WhatsAppService:
         estabelecimento_id: int,
         message_request: WhatsAppMessageRequest
     ) -> WhatsAppMessageResponse:
-        """Envia mensagem WhatsApp para um cliente"""
-        # Busca configuração
+        """Envia mensagem WhatsApp usando template"""
+        # Busca config
         config = WhatsAppService.get_config(db, estabelecimento_id)
         if not config or not config.ativado:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="WhatsApp não está configurado ou ativado para este estabelecimento"
+                detail="WhatsApp não configurado ou desativado"
             )
 
         # Busca cliente
         cliente = db.query(Cliente).filter(
-            and_(
-                Cliente.id == message_request.cliente_id,
-                Cliente.estabelecimento_id == estabelecimento_id,
-                Cliente.is_active == True
-            )
+            Cliente.id == message_request.cliente_id,
+            Cliente.estabelecimento_id == estabelecimento_id
         ).first()
 
-        if not cliente or not cliente.telefone:
+        if not cliente:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Cliente não encontrado ou sem telefone cadastrado"
+                detail="Cliente não encontrado"
             )
 
-        # Determina o template a usar
-        template_map = {
-            'AGENDAMENTO': (config.template_agendamento, config.enviar_agendamento),
-            'LEMBRETE': (config.template_lembrete, config.enviar_lembrete),
-            'CONFIRMACAO': (config.template_confirmacao, config.enviar_confirmacao),
-            'CANCELAMENTO': (config.template_cancelamento, config.enviar_cancelamento),
-            'RECICLAGEM': (config.template_reciclagem, config.enviar_reciclagem),
-        }
-
-        tipo = message_request.tipo_mensagem.upper()
-        if tipo not in template_map:
+        if not cliente.telefone:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Tipo de mensagem inválido: {tipo}"
+                detail="Cliente não possui telefone cadastrado"
             )
 
-        template, enviar_ativo = template_map[tipo]
-
-        if not enviar_ativo:
-            return WhatsAppMessageResponse(
-                sucesso=False,
-                erro="Tipo de mensagem desativado nas configurações",
-                telefone_destino=cliente.telefone
-            )
-
-        # Monta mensagem
+        # Prepara mensagem
         if message_request.mensagem_customizada:
             message_text = message_request.mensagem_customizada
-        elif template:
-            # Busca dados do agendamento se necessário
-            if message_request.agendamento_id:
-                agendamento = db.query(Agendamento).filter(Agendamento.id == message_request.agendamento_id).first()
-                if agendamento:
-                    template_data = WhatsAppService._get_template_data_from_agendamento(db, agendamento)
-                else:
-                    template_data = {'nome_cliente': cliente.nome}
-            else:
-                template_data = {'nome_cliente': cliente.nome}
-
-            message_text = WhatsAppService._replace_placeholders(template, template_data)
         else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Template não configurado para {tipo}"
-            )
+            # Busca template
+            template = None
+            tipo = message_request.tipo_mensagem.upper()
+
+            if tipo == 'AGENDAMENTO':
+                template = config.template_agendamento
+            elif tipo == 'LEMBRETE':
+                template = config.template_lembrete
+            elif tipo == 'CONFIRMACAO':
+                template = config.template_conclusao  # DEPRECATED - manter por compatibilidade
+            elif tipo == 'CONCLUSAO':
+                template = config.template_conclusao
+            elif tipo == 'CANCELAMENTO':
+                template = config.template_cancelamento
+            elif tipo == 'RECICLAGEM':
+                template = config.template_reciclagem
+
+            if not template:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Template não configurado para tipo {tipo}"
+                )
+
+            # Busca nome da empresa do estabelecimento
+            from app.models.estabelecimento import Estabelecimento
+            from app.models.empresa import Empresa
+            estabelecimento = db.query(Estabelecimento).filter(
+                Estabelecimento.id == estabelecimento_id
+            ).first()
+            nome_empresa = ''
+            if estabelecimento and estabelecimento.empresa_id:
+                empresa = db.query(Empresa).filter(Empresa.id == estabelecimento.empresa_id).first()
+                nome_empresa = empresa.nome if empresa else estabelecimento.nome
+
+            # Busca dados do agendamento se fornecido
+            placeholders = {
+                'nome_cliente': cliente.nome,
+                'telefone_cliente': cliente.telefone,
+                'nome_empresa': nome_empresa
+            }
+
+            if message_request.agendamento_id:
+                from sqlalchemy.orm import joinedload
+                from zoneinfo import ZoneInfo
+
+                BRAZIL_TZ = ZoneInfo("America/Sao_Paulo")
+
+                agendamento = db.query(Agendamento).options(
+                    joinedload(Agendamento.cliente),
+                    joinedload(Agendamento.servico),
+                    joinedload(Agendamento.vendedor)
+                ).filter(
+                    Agendamento.id == message_request.agendamento_id
+                ).first()
+
+                if agendamento:
+                    # Converter para timezone do Brasil antes de formatar
+                    # Se o datetime não tem timezone (naive), assume que já está em horário do Brasil
+                    if agendamento.data_inicio.tzinfo is None:
+                        # Datetime naive - adiciona timezone do Brasil
+                        data_inicio_br = agendamento.data_inicio.replace(tzinfo=BRAZIL_TZ)
+                    else:
+                        # Datetime aware - converte para timezone do Brasil
+                        data_inicio_br = agendamento.data_inicio.astimezone(BRAZIL_TZ)
+
+                    if agendamento.data_fim:
+                        if agendamento.data_fim.tzinfo is None:
+                            data_fim_br = agendamento.data_fim.replace(tzinfo=BRAZIL_TZ)
+                        else:
+                            data_fim_br = agendamento.data_fim.astimezone(BRAZIL_TZ)
+                    else:
+                        data_fim_br = None
+
+                    # Log para debug
+                    logger.info(f"[WHATSAPP] Agendamento ID {agendamento.id}:")
+                    logger.info(f"  data_inicio original: {agendamento.data_inicio} (tzinfo: {agendamento.data_inicio.tzinfo})")
+                    logger.info(f"  data_inicio_br: {data_inicio_br}")
+                    logger.info(f"  hora formatada: {data_inicio_br.strftime('%H:%M')}")
+
+                    placeholders.update({
+                        'data': data_inicio_br.strftime('%d/%m/%Y'),
+                        'hora': data_inicio_br.strftime('%H:%M'),
+                        'hora_fim': data_fim_br.strftime('%H:%M') if data_fim_br else '',
+                        'servico': agendamento.servico.nome if agendamento.servico else agendamento.servico_personalizado_nome or '',
+                        'vendedor': agendamento.vendedor.full_name if agendamento.vendedor else '',
+                        'valor': f"R$ {agendamento.valor_final:.2f}" if agendamento.valor_final else '',
+                        'status': agendamento.status.value if agendamento.status else ''
+                    })
+
+            message_text = WhatsAppService._replace_placeholders(template, placeholders)
 
         # Formata telefone
         formatted_phone = WhatsAppService._format_phone_number(cliente.telefone)
 
-        # Envia mensagem via Evolution API
+        # Envia via WAHA
         try:
-            result = WhatsAppService._send_evolution_message(
-                evolution_api_url=config.evolution_api_url,
-                evolution_api_key=config.evolution_api_key,
-                instance_name=config.evolution_instance_name,
+            result = WAHAService.send_text_message(
+                waha_url=config.waha_url,
+                waha_api_key=config.waha_api_key,
+                session_name=config.waha_session_name,
                 to_phone=formatted_phone,
                 message_text=message_text
             )
 
-            # Extrai ID da mensagem (Evolution API retorna formato diferente)
-            message_id = result.get('key', {}).get('id') if isinstance(result.get('key'), dict) else None
+            message_id = result.get('key', {}).get('id')
 
             return WhatsAppMessageResponse(
                 sucesso=True,
                 mensagem_id=message_id,
                 telefone_destino=formatted_phone
             )
-        except HTTPException as e:
+
+        except Exception as e:
+            logger.error(f"Erro ao enviar mensagem: {str(e)}")
             return WhatsAppMessageResponse(
                 sucesso=False,
-                erro=str(e.detail),
-                telefone_destino=formatted_phone
-            )
-
-    @staticmethod
-    def send_test_message(
-        db: Session,
-        estabelecimento_id: int,
-        test_request: WhatsAppTestRequest
-    ) -> WhatsAppMessageResponse:
-        """Envia mensagem de teste"""
-        # Busca configuração
-        config = WhatsAppService.get_config(db, estabelecimento_id)
-        if not config:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Configuração do WhatsApp não encontrada"
-            )
-
-        # Formata telefone
-        formatted_phone = WhatsAppService._format_phone_number(test_request.telefone)
-
-        # Envia mensagem
-        try:
-            result = WhatsAppService._send_evolution_message(
-                evolution_api_url=config.evolution_api_url,
-                evolution_api_key=config.evolution_api_key,
-                instance_name=config.evolution_instance_name,
-                to_phone=formatted_phone,
-                message_text=test_request.mensagem
-            )
-
-            message_id = result.get('key', {}).get('id') if isinstance(result.get('key'), dict) else None
-
-            return WhatsAppMessageResponse(
-                sucesso=True,
-                mensagem_id=message_id,
-                telefone_destino=formatted_phone
-            )
-        except HTTPException as e:
-            return WhatsAppMessageResponse(
-                sucesso=False,
-                erro=str(e.detail),
+                erro=str(e),
                 telefone_destino=formatted_phone
             )
 
@@ -349,7 +357,7 @@ class WhatsAppService:
 
     @staticmethod
     def notify_confirmacao(db: Session, agendamento: Agendamento) -> None:
-        """Envia notificação de confirmação"""
+        """Envia notificação de confirmação (DEPRECATED - manter por compatibilidade)"""
         if not agendamento.cliente or not agendamento.estabelecimento_id:
             return
 
@@ -369,6 +377,29 @@ class WhatsAppService:
             )
         except Exception as e:
             logger.error(f"Erro ao enviar notificação de confirmação: {str(e)}")
+
+    @staticmethod
+    def notify_conclusao(db: Session, agendamento: Agendamento) -> None:
+        """Envia notificação de conclusão de serviço"""
+        if not agendamento.cliente or not agendamento.estabelecimento_id:
+            return
+
+        config = WhatsAppService.get_config(db, agendamento.estabelecimento_id)
+        if not config or not config.ativado or not config.enviar_conclusao:
+            return
+
+        try:
+            WhatsAppService.send_message(
+                db=db,
+                estabelecimento_id=agendamento.estabelecimento_id,
+                message_request=WhatsAppMessageRequest(
+                    cliente_id=agendamento.cliente_id,
+                    tipo_mensagem='CONCLUSAO',
+                    agendamento_id=agendamento.id
+                )
+            )
+        except Exception as e:
+            logger.error(f"Erro ao enviar notificação de conclusão: {str(e)}")
 
     @staticmethod
     def notify_cancelamento(db: Session, agendamento: Agendamento) -> None:
@@ -399,51 +430,59 @@ class WhatsAppService:
     def get_clientes_inativos(
         db: Session,
         estabelecimento_id: int,
-        meses_inatividade: int
+        meses_inatividade: int = 3
     ) -> List[Dict[str, Any]]:
-        """
-        Retorna lista de clientes inativos (sem agendamento há X meses).
-        """
-        data_limite = datetime.now() - timedelta(days=30 * meses_inatividade)
+        """Lista clientes sem agendamento há X meses"""
+        from zoneinfo import ZoneInfo
+        BRAZIL_TZ = ZoneInfo("America/Sao_Paulo")
 
-        # Subquery para último agendamento de cada cliente
-        ultimo_agendamento_sq = (
-            db.query(
-                Agendamento.cliente_id,
-                func.max(Agendamento.data_inicio).label('ultimo_agendamento')
-            )
-            .filter(Agendamento.estabelecimento_id == estabelecimento_id)
-            .group_by(Agendamento.cliente_id)
-            .subquery()
-        )
+        data_limite = datetime.now(BRAZIL_TZ) - timedelta(days=meses_inatividade * 30)
+        logger.info(f"[CLIENTES_INATIVOS] Data limite: {data_limite} (inatividade: {meses_inatividade} meses)")
 
-        # Clientes inativos
-        clientes_inativos = (
-            db.query(Cliente, ultimo_agendamento_sq.c.ultimo_agendamento)
-            .outerjoin(ultimo_agendamento_sq, Cliente.id == ultimo_agendamento_sq.c.cliente_id)
-            .filter(
-                Cliente.estabelecimento_id == estabelecimento_id,
-                Cliente.is_active == True,
-                Cliente.telefone != None,
-                Cliente.telefone != '',
-                func.coalesce(ultimo_agendamento_sq.c.ultimo_agendamento, Cliente.created_at) < data_limite
-            )
-            .all()
-        )
+        # Subquery: último agendamento de cada cliente
+        subq = db.query(
+            Agendamento.cliente_id,
+            func.max(Agendamento.data_inicio).label('ultima_data')
+        ).filter(
+            Agendamento.estabelecimento_id == estabelecimento_id,
+            Agendamento.deleted_at.is_(None)
+        ).group_by(Agendamento.cliente_id).subquery()
 
-        result = []
-        for cliente, ultimo_agendamento in clientes_inativos:
-            meses_inativo = (datetime.now() - (ultimo_agendamento or cliente.created_at)).days // 30
-            result.append({
-                'cliente_id': cliente.id,
+        # Clientes com último agendamento antes da data limite
+        clientes_inativos = db.query(Cliente).join(
+            subq, Cliente.id == subq.c.cliente_id
+        ).filter(
+            Cliente.estabelecimento_id == estabelecimento_id,
+            Cliente.is_active == True,
+            subq.c.ultima_data < data_limite
+        ).all()
+
+        resultado = []
+        for cliente in clientes_inativos:
+            # Busca data do último agendamento
+            ultimo = db.query(Agendamento).filter(
+                Agendamento.cliente_id == cliente.id,
+                Agendamento.deleted_at.is_(None)
+            ).order_by(Agendamento.data_inicio.desc()).first()
+
+            # Calcular dias de inatividade usando timezone do Brasil
+            dias_inativo = None
+            if ultimo and ultimo.data_inicio:
+                # Garantir que ambos datetimes estão no mesmo timezone
+                agora_br = datetime.now(BRAZIL_TZ)
+                ultimo_br = ultimo.data_inicio.astimezone(BRAZIL_TZ) if ultimo.data_inicio.tzinfo else ultimo.data_inicio.replace(tzinfo=BRAZIL_TZ)
+                dias_inativo = (agora_br - ultimo_br).days
+
+            resultado.append({
+                'id': cliente.id,
                 'nome': cliente.nome,
                 'telefone': cliente.telefone,
                 'email': cliente.email,
-                'ultimo_agendamento': ultimo_agendamento.isoformat() if ultimo_agendamento else None,
-                'meses_inativo': meses_inativo
+                'ultimo_agendamento': ultimo.data_inicio if ultimo else None,
+                'dias_inativo': dias_inativo
             })
 
-        return result
+        return resultado
 
     @staticmethod
     def send_reciclagem_message(
@@ -453,135 +492,109 @@ class WhatsAppService:
     ) -> WhatsAppMessageResponse:
         """Envia mensagem de reciclagem para cliente específico"""
         config = WhatsAppService.get_config(db, estabelecimento_id)
-        if not config or not config.ativado or not config.enviar_reciclagem:
+        if not config or not config.ativado:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Reciclagem não está ativada"
+                detail="WhatsApp não configurado"
             )
 
-        cliente = db.query(Cliente).filter(
-            Cliente.id == cliente_id,
-            Cliente.estabelecimento_id == estabelecimento_id,
-            Cliente.is_active == True
-        ).first()
-
-        if not cliente:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Cliente não encontrado"
+        return WhatsAppService.send_message(
+            db=db,
+            estabelecimento_id=estabelecimento_id,
+            message_request=WhatsAppMessageRequest(
+                cliente_id=cliente_id,
+                tipo_mensagem='RECICLAGEM'
             )
-
-        # Busca último agendamento
-        ultimo_agendamento = (
-            db.query(Agendamento)
-            .filter(Agendamento.cliente_id == cliente_id)
-            .order_by(Agendamento.data_inicio.desc())
-            .first()
         )
-
-        # Busca estabelecimento
-        estabelecimento = db.query(Estabelecimento).filter(Estabelecimento.id == estabelecimento_id).first()
-
-        # Monta dados do template
-        template_data = {
-            'nome_cliente': cliente.nome,
-            'nome_empresa': estabelecimento.nome if estabelecimento else 'Nossa empresa',
-            'meses_inativo': config.meses_inatividade,
-            'data_ultimo_servico': ultimo_agendamento.data_inicio.strftime('%d/%m') if ultimo_agendamento else 'há muito tempo',
-            'link_agendamento': config.link_agendamento or ''
-        }
-
-        if not config.template_reciclagem:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Template de reciclagem não configurado"
-            )
-
-        message_text = WhatsAppService._replace_placeholders(config.template_reciclagem, template_data)
-
-        # Formata telefone
-        formatted_phone = WhatsAppService._format_phone_number(cliente.telefone)
-
-        # Envia mensagem
-        try:
-            result = WhatsAppService._send_evolution_message(
-                evolution_api_url=config.evolution_api_url,
-                evolution_api_key=config.evolution_api_key,
-                instance_name=config.evolution_instance_name,
-                to_phone=formatted_phone,
-                message_text=message_text
-            )
-
-            message_id = result.get('key', {}).get('id') if isinstance(result.get('key'), dict) else None
-
-            return WhatsAppMessageResponse(
-                sucesso=True,
-                mensagem_id=message_id,
-                telefone_destino=formatted_phone
-            )
-        except HTTPException as e:
-            return WhatsAppMessageResponse(
-                sucesso=False,
-                erro=str(e.detail),
-                telefone_destino=formatted_phone
-            )
 
     @staticmethod
     def process_reciclagem_cron(db: Session) -> Dict[str, Any]:
-        """
-        Processa reciclagem de clientes inativos para TODOS os estabelecimentos.
-        Usado por cron job diário.
-        """
-        # Busca todas as configurações ativas com reciclagem habilitada
+        """Processa envio de reciclagem para todos estabelecimentos (CRON)"""
+        stats = {
+            'estabelecimentos_processados': 0,
+            'mensagens_enviadas': 0,
+            'erros': 0
+        }
+
+        # Busca todos estabelecimentos com WhatsApp ativo e reciclagem habilitada
         configs = db.query(WhatsAppConfig).filter(
             WhatsAppConfig.ativado == True,
             WhatsAppConfig.enviar_reciclagem == True
         ).all()
 
-        estatisticas = {
-            'estabelecimentos_processados': 0,
-            'clientes_inativos_encontrados': 0,
-            'mensagens_enviadas': 0,
-            'mensagens_falhas': 0,
-            'erros': []
+        for config in configs:
+            stats['estabelecimentos_processados'] += 1
+
+            # Lista clientes inativos
+            clientes_inativos = WhatsAppService.get_clientes_inativos(
+                db=db,
+                estabelecimento_id=config.estabelecimento_id,
+                meses_inatividade=config.meses_inatividade
+            )
+
+            # Envia para cada cliente
+            for cliente in clientes_inativos:
+                try:
+                    WhatsAppService.send_reciclagem_message(
+                        db=db,
+                        estabelecimento_id=config.estabelecimento_id,
+                        cliente_id=cliente['id']
+                    )
+                    stats['mensagens_enviadas'] += 1
+                except Exception as e:
+                    logger.error(f"Erro ao enviar reciclagem para cliente {cliente['id']}: {str(e)}")
+                    stats['erros'] += 1
+
+        return stats
+
+    @staticmethod
+    def process_lembretes_cron(db: Session) -> Dict[str, Any]:
+        """Processa envio de lembretes 24h antes (CRON)"""
+        from zoneinfo import ZoneInfo
+        BRAZIL_TZ = ZoneInfo("America/Sao_Paulo")
+
+        stats = {
+            'agendamentos_processados': 0,
+            'lembretes_enviados': 0,
+            'erros': 0
         }
 
-        for config in configs:
+        # Busca agendamentos entre 23h e 25h no futuro (usar horário do Brasil)
+        agora = datetime.now(BRAZIL_TZ)
+        inicio_janela = agora + timedelta(hours=23)
+        fim_janela = agora + timedelta(hours=25)
+
+        logger.info(f"[LEMBRETES_CRON] Processando lembretes. Agora: {agora}")
+        logger.info(f"[LEMBRETES_CRON] Janela: {inicio_janela} até {fim_janela}")
+
+        agendamentos = db.query(Agendamento).filter(
+            Agendamento.data_inicio >= inicio_janela,
+            Agendamento.data_inicio <= fim_janela,
+            Agendamento.deleted_at.is_(None),
+            Agendamento.status.in_(['AGENDADO', 'CONFIRMADO'])
+        ).all()
+
+        for agendamento in agendamentos:
+            stats['agendamentos_processados'] += 1
+
+            # Verifica config
+            config = WhatsAppService.get_config(db, agendamento.estabelecimento_id)
+            if not config or not config.ativado or not config.enviar_lembrete:
+                continue
+
             try:
-                estatisticas['estabelecimentos_processados'] += 1
-
-                # Busca clientes inativos
-                clientes_inativos = WhatsAppService.get_clientes_inativos(
+                WhatsAppService.send_message(
                     db=db,
-                    estabelecimento_id=config.estabelecimento_id,
-                    meses_inatividade=config.meses_inatividade
+                    estabelecimento_id=agendamento.estabelecimento_id,
+                    message_request=WhatsAppMessageRequest(
+                        cliente_id=agendamento.cliente_id,
+                        tipo_mensagem='LEMBRETE',
+                        agendamento_id=agendamento.id
+                    )
                 )
-
-                estatisticas['clientes_inativos_encontrados'] += len(clientes_inativos)
-
-                # Envia mensagem para cada cliente
-                for cliente_data in clientes_inativos:
-                    try:
-                        response = WhatsAppService.send_reciclagem_message(
-                            db=db,
-                            estabelecimento_id=config.estabelecimento_id,
-                            cliente_id=cliente_data['cliente_id']
-                        )
-
-                        if response.sucesso:
-                            estatisticas['mensagens_enviadas'] += 1
-                        else:
-                            estatisticas['mensagens_falhas'] += 1
-                            estatisticas['erros'].append(f"Cliente {cliente_data['nome']}: {response.erro}")
-
-                    except Exception as e:
-                        estatisticas['mensagens_falhas'] += 1
-                        estatisticas['erros'].append(f"Cliente {cliente_data['nome']}: {str(e)}")
-                        logger.error(f"Erro ao enviar reciclagem para cliente {cliente_data['cliente_id']}: {str(e)}")
-
+                stats['lembretes_enviados'] += 1
             except Exception as e:
-                estatisticas['erros'].append(f"Estabelecimento {config.estabelecimento_id}: {str(e)}")
-                logger.error(f"Erro ao processar reciclagem para estabelecimento {config.estabelecimento_id}: {str(e)}")
+                logger.error(f"Erro ao enviar lembrete para agendamento {agendamento.id}: {str(e)}")
+                stats['erros'] += 1
 
-        logger.info(f"Processamento de reciclagem concluído: {estatisticas}")
-        return estatisticas
+        return stats

@@ -1,22 +1,22 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { MessageCircle, Settings, FileText, Users, Send, TestTube, CheckCircle, AlertCircle, ExternalLink, RefreshCw, QrCode, Smartphone, RotateCw } from 'lucide-react'
+import { MessageCircle, Settings, FileText, Users, Send, TestTube, CheckCircle, AlertCircle, RefreshCw, QrCode, Smartphone, RotateCw, Play, Square } from 'lucide-react'
 import { whatsappApi } from '../services/api'
 import type { WhatsAppConfigCreate, WhatsAppConfigUpdate } from '../types'
 
 type ActiveTab = 'config' | 'templates' | 'inativos'
 
-export default function WhatsAppPage() {
+export default function WAHAPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('config')
   const [testPhone, setTestPhone] = useState('')
-  const [testMessage, setTestMessage] = useState('Olá! Esta é uma mensagem de teste via Evolution API.')
+  const [testMessage, setTestMessage] = useState('Olá! Esta é uma mensagem de teste.')
   const queryClient = useQueryClient()
 
   // States para formulário
   const [formData, setFormData] = useState({
-    evolution_api_url: '',
-    evolution_api_key: '',
-    evolution_instance_name: '',
+    waha_url: '',
+    waha_api_key: '',
+    waha_session_name: '',
     template_agendamento: '',
     template_lembrete: '',
     template_conclusao: '',
@@ -40,9 +40,9 @@ export default function WhatsAppPage() {
         const configData = await whatsappApi.getConfig()
         if (configData) {
           setFormData({
-            evolution_api_url: configData.evolution_api_url || '',
-            evolution_api_key: configData.evolution_api_key || '',
-            evolution_instance_name: configData.evolution_instance_name || '',
+            waha_url: configData.waha_url || '',
+            waha_api_key: configData.waha_api_key || '',
+            waha_session_name: configData.waha_session_name || '',
             template_agendamento: configData.template_agendamento || '',
             template_lembrete: configData.template_lembrete || '',
             template_conclusao: configData.template_conclusao || '',
@@ -76,12 +76,32 @@ export default function WhatsAppPage() {
     enabled: activeTab === 'inativos',
   })
 
-  // Query status de conexão WhatsApp
+  // Query status de conexão WAHA
   const { data: connectionStatus, isLoading: loadingConnection, refetch: refetchConnection } = useQuery({
-    queryKey: ['whatsapp-connection-status'],
-    queryFn: whatsappApi.getConnectionStatus,
+    queryKey: ['waha-connection-status'],
+    queryFn: async () => {
+      try {
+        const status = await whatsappApi.getWahaStatus()
+        // Se não conectado e aguardando QR, buscar QR Code
+        if (!status.connected && status.status === 'SCAN_QR_CODE') {
+          try {
+            const qr = await whatsappApi.getWahaQRCode()
+            status.qrcode = { qr: qr.qr, code: null }
+          } catch (e) {
+            console.warn('QR Code não disponível ainda:', e)
+          }
+        }
+        return status
+      } catch (error) {
+        return {
+          connected: false,
+          status: 'NOT_STARTED',
+          qrcode: null,
+        }
+      }
+    },
     enabled: !!config && activeTab === 'config',
-    refetchInterval: 30000, // Atualiza a cada 30 segundos
+    refetchInterval: 15000, // Atualiza a cada 15 segundos
     retry: false,
   })
 
@@ -98,6 +118,43 @@ export default function WhatsAppPage() {
     onError: (error: any) => {
       console.error('Erro ao salvar configuração:', error)
       alert(`Erro ao salvar: ${error?.response?.data?.detail || error.message}`)
+    },
+  })
+
+  // Mutation iniciar sessão
+  const startSessionMutation = useMutation({
+    mutationFn: whatsappApi.startWahaSession,
+    onSuccess: () => {
+      alert('Sessão WhatsApp iniciada! Aguarde o QR Code...')
+      setTimeout(() => refetchConnection(), 2000)
+    },
+    onError: (error: any) => {
+      console.error('Erro ao iniciar sessão:', error)
+      alert(`Erro ao iniciar: ${error?.response?.data?.detail || error.message}`)
+    },
+  })
+
+  // Mutation parar sessão
+  const stopSessionMutation = useMutation({
+    mutationFn: whatsappApi.stopWahaSession,
+    onSuccess: () => {
+      alert('Sessão WhatsApp parada.')
+      refetchConnection()
+    },
+    onError: (error: any) => {
+      alert(`Erro ao parar: ${error?.response?.data?.detail || error.message}`)
+    },
+  })
+
+  // Mutation logout (reconectar)
+  const logoutSessionMutation = useMutation({
+    mutationFn: whatsappApi.logoutWahaSession,
+    onSuccess: () => {
+      alert('Logout realizado! Escaneie o novo QR Code.')
+      setTimeout(() => refetchConnection(), 2000)
+    },
+    onError: (error: any) => {
+      alert(`Erro ao fazer logout: ${error?.response?.data?.detail || error.message}`)
     },
   })
 
@@ -130,20 +187,6 @@ export default function WhatsAppPage() {
     },
     onError: (error: any) => {
       alert(`Erro ao enviar: ${error?.response?.data?.detail || error.message}`)
-    },
-  })
-
-  // Mutation resetar instância WhatsApp
-  const resetInstanceMutation = useMutation({
-    mutationFn: whatsappApi.logoutWahaSession,
-    onSuccess: () => {
-      alert('Instância WhatsApp resetada com sucesso! Escaneie o novo QR Code.')
-      queryClient.invalidateQueries({ queryKey: ['whatsapp-connection-status'] })
-      refetchConnection()
-    },
-    onError: (error: any) => {
-      console.error('Erro ao resetar instância:', error)
-      alert(`Erro ao resetar: ${error?.response?.data?.detail || error.message}`)
     },
   })
 
@@ -182,10 +225,10 @@ export default function WhatsAppPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <MessageCircle className="w-8 h-8 text-green-600" />
-            WhatsApp via Evolution API
+            WhatsApp Business
           </h1>
           <p className="text-gray-600 mt-1">
-            Configure e gerencie notificações WhatsApp usando Evolution API
+            Configure notificações automáticas via WhatsApp
           </p>
         </div>
         {config && (
@@ -205,6 +248,7 @@ export default function WhatsAppPage() {
         )}
       </div>
 
+
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
@@ -212,7 +256,7 @@ export default function WhatsAppPage() {
             onClick={() => setActiveTab('config')}
             className={`${
               activeTab === 'config'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-green-500 text-green-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
@@ -223,7 +267,7 @@ export default function WhatsAppPage() {
             onClick={() => setActiveTab('templates')}
             className={`${
               activeTab === 'templates'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-green-500 text-green-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
@@ -234,7 +278,7 @@ export default function WhatsAppPage() {
             onClick={() => setActiveTab('inativos')}
             className={`${
               activeTab === 'inativos'
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-green-500 text-green-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
@@ -255,64 +299,51 @@ export default function WhatsAppPage() {
         {activeTab === 'config' && (
           <form onSubmit={handleSaveConfig} className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Credenciais Evolution API</h2>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-blue-900">
-                  <strong>Importante:</strong> Você precisa hospedar o Evolution API separadamente.
-                  Consulte a pasta <code className="bg-blue-100 px-1 rounded">evolution-api/</code> do projeto
-                  para instruções de deploy no Render.
-                </p>
-              </div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Informações do Servidor</h2>
 
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    URL da Evolution API <span className="text-red-500">*</span>
+                    URL do Servidor
                   </label>
                   <input
                     type="url"
-                    required
-                    value={formData.evolution_api_url}
-                    onChange={(e) => setFormData({ ...formData, evolution_api_url: e.target.value })}
-                    placeholder="https://evolution.onrender.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled
+                    value={formData.waha_url}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    URL do seu serviço Evolution API (ex: https://seu-servico.onrender.com)
+                    Servidor configurado pelo administrador do sistema
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    API Key <span className="text-red-500">*</span>
+                    Chave de Autenticação
                   </label>
                   <input
                     type="password"
-                    required
-                    value={formData.evolution_api_key}
-                    onChange={(e) => setFormData({ ...formData, evolution_api_key: e.target.value })}
-                    placeholder="Sua API Key da Evolution API"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled
+                    value={formData.waha_api_key}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Chave de autenticação configurada no Evolution API
+                    Chave de segurança configurada pelo administrador
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome da Instância <span className="text-red-500">*</span>
+                    Identificação da Conexão
                   </label>
                   <input
                     type="text"
-                    required
-                    value={formData.evolution_instance_name}
-                    onChange={(e) => setFormData({ ...formData, evolution_instance_name: e.target.value })}
-                    placeholder="agenda_onsell"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled
+                    value={formData.waha_session_name}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Nome da instância WhatsApp criada no Evolution API
+                    Nome da sessão WhatsApp do seu estabelecimento
                   </p>
                 </div>
               </div>
@@ -328,7 +359,7 @@ export default function WhatsAppPage() {
 
                 {loadingConnection ? (
                   <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                   </div>
                 ) : connectionStatus ? (
                   <div className="space-y-4">
@@ -340,7 +371,15 @@ export default function WhatsAppPage() {
                             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                             <div>
                               <p className="font-medium text-gray-900">WhatsApp Conectado</p>
-                              <p className="text-sm text-gray-600">Instância: {connectionStatus.instance}</p>
+                              <p className="text-sm text-gray-600">Sessão: {connectionStatus.session}</p>
+                            </div>
+                          </>
+                        ) : connectionStatus.status === 'STARTING' ? (
+                          <>
+                            <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
+                            <div>
+                              <p className="font-medium text-gray-900">Inicializando Conexão...</p>
+                              <p className="text-sm text-amber-600">Aguarde 1-2 minutos. O servidor está iniciando.</p>
                             </div>
                           </>
                         ) : (
@@ -348,52 +387,83 @@ export default function WhatsAppPage() {
                             <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                             <div>
                               <p className="font-medium text-gray-900">WhatsApp Desconectado</p>
-                              <p className="text-sm text-gray-600">Escaneie o QR Code para conectar</p>
+                              <p className="text-sm text-gray-600">Status: {connectionStatus.status}</p>
                             </div>
                           </>
                         )}
                       </div>
                       <div className="flex gap-2">
                         <button
+                          type="button"
                           onClick={() => refetchConnection()}
                           className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2"
                         >
                           <RefreshCw className="w-4 h-4" />
                           Atualizar
                         </button>
-                        <button
-                          onClick={() => {
-                            if (confirm('Isso vai resetar a conexão WhatsApp. Deseja continuar?')) {
-                              resetInstanceMutation.mutate()
-                            }
-                          }}
-                          disabled={resetInstanceMutation.isPending}
-                          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          <RotateCw className="w-4 h-4" />
-                          {resetInstanceMutation.isPending ? 'Resetando...' : 'Reconectar'}
-                        </button>
+
+                        {connectionStatus.status === 'NOT_STARTED' || connectionStatus.status === 'STOPPED' ? (
+                          <button
+                            type="button"
+                            onClick={() => startSessionMutation.mutate()}
+                            disabled={startSessionMutation.isPending}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                          >
+                            <Play className="w-4 h-4" />
+                            {startSessionMutation.isPending ? 'Iniciando...' : 'Iniciar Sessão'}
+                          </button>
+                        ) : connectionStatus.connected ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Deseja parar a sessão WhatsApp?')) {
+                                stopSessionMutation.mutate()
+                              }
+                            }}
+                            disabled={stopSessionMutation.isPending}
+                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2"
+                          >
+                            <Square className="w-4 h-4" />
+                            Parar
+                          </button>
+                        ) : null}
+
+                        {connectionStatus.status !== 'NOT_STARTED' && connectionStatus.status !== 'STOPPED' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Desconectar WhatsApp e gerar novo QR Code?')) {
+                                logoutSessionMutation.mutate()
+                              }
+                            }}
+                            disabled={logoutSessionMutation.isPending}
+                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2"
+                          >
+                            <RotateCw className="w-4 h-4" />
+                            {logoutSessionMutation.isPending ? 'Reconectando...' : 'Reconectar'}
+                          </button>
+                        )}
                       </div>
                     </div>
 
                     {/* QR Code */}
-                    {!connectionStatus.connected && connectionStatus.qrcode && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    {!connectionStatus.connected && connectionStatus.qrcode && connectionStatus.qrcode.qr && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                         <div className="flex flex-col items-center gap-4">
-                          <div className="flex items-center gap-2 text-blue-900">
+                          <div className="flex items-center gap-2 text-green-900">
                             <QrCode className="w-5 h-5" />
                             <h3 className="font-semibold">Conectar WhatsApp</h3>
                           </div>
 
                           <div className="bg-white p-4 rounded-lg shadow-md">
                             <img
-                              src={connectionStatus.qrcode.base64}
+                              src={connectionStatus.qrcode.qr}
                               alt="QR Code WhatsApp"
                               className="w-64 h-64"
                             />
                           </div>
 
-                          <div className="text-sm text-blue-800 text-center max-w-md">
+                          <div className="text-sm text-green-800 text-center max-w-md">
                             <p className="font-medium mb-2">Como conectar:</p>
                             <ol className="text-left space-y-1">
                               <li>1. Abra o WhatsApp no seu celular</li>
@@ -403,7 +473,7 @@ export default function WhatsAppPage() {
                             </ol>
                           </div>
 
-                          <p className="text-xs text-blue-600">
+                          <p className="text-xs text-green-600">
                             O QR Code expira após alguns minutos. Clique em "Atualizar" se necessário.
                           </p>
                         </div>
@@ -422,7 +492,7 @@ export default function WhatsAppPage() {
                 ) : (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <p className="text-sm text-yellow-900">
-                      Salve a configuração da Evolution API primeiro para verificar o status de conexão.
+                      Salve a configuração primeiro para verificar o status de conexão.
                     </p>
                   </div>
                 )}
@@ -439,7 +509,7 @@ export default function WhatsAppPage() {
                     id="ativado"
                     checked={formData.ativado}
                     onChange={(e) => setFormData({ ...formData, ativado: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                   />
                   <label htmlFor="ativado" className="ml-2 text-sm font-medium text-gray-700">
                     Ativar WhatsApp (liga/desliga todas as notificações)
@@ -453,7 +523,7 @@ export default function WhatsAppPage() {
                       id="enviar_agendamento"
                       checked={formData.enviar_agendamento}
                       onChange={(e) => setFormData({ ...formData, enviar_agendamento: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                     />
                     <label htmlFor="enviar_agendamento" className="ml-2 text-sm text-gray-700">
                       Novo Agendamento
@@ -466,7 +536,7 @@ export default function WhatsAppPage() {
                       id="enviar_conclusao"
                       checked={formData.enviar_conclusao}
                       onChange={(e) => setFormData({ ...formData, enviar_conclusao: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                     />
                     <label htmlFor="enviar_conclusao" className="ml-2 text-sm text-gray-700">
                       Conclusão
@@ -479,7 +549,7 @@ export default function WhatsAppPage() {
                       id="enviar_lembrete"
                       checked={formData.enviar_lembrete}
                       onChange={(e) => setFormData({ ...formData, enviar_lembrete: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                     />
                     <label htmlFor="enviar_lembrete" className="ml-2 text-sm text-gray-700">
                       Lembrete 24h
@@ -492,7 +562,7 @@ export default function WhatsAppPage() {
                       id="enviar_cancelamento"
                       checked={formData.enviar_cancelamento}
                       onChange={(e) => setFormData({ ...formData, enviar_cancelamento: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                     />
                     <label htmlFor="enviar_cancelamento" className="ml-2 text-sm text-gray-700">
                       Cancelamento
@@ -505,7 +575,7 @@ export default function WhatsAppPage() {
                       id="enviar_reciclagem"
                       checked={formData.enviar_reciclagem}
                       onChange={(e) => setFormData({ ...formData, enviar_reciclagem: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                     />
                     <label htmlFor="enviar_reciclagem" className="ml-2 text-sm text-gray-700">
                       Reciclagem de Inativos
@@ -523,7 +593,7 @@ export default function WhatsAppPage() {
                     max="12"
                     value={formData.meses_inatividade}
                     onChange={(e) => setFormData({ ...formData, meses_inatividade: parseInt(e.target.value) })}
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Cliente sem agendamento há X meses será considerado inativo
@@ -539,7 +609,7 @@ export default function WhatsAppPage() {
                     value={formData.link_agendamento}
                     onChange={(e) => setFormData({ ...formData, link_agendamento: e.target.value })}
                     placeholder="https://seusite.com/agendar"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Link incluído nas mensagens de reciclagem
@@ -570,7 +640,7 @@ export default function WhatsAppPage() {
                     value={testPhone}
                     onChange={(e) => setTestPhone(e.target.value)}
                     placeholder="11999999999"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -581,7 +651,7 @@ export default function WhatsAppPage() {
                     type="text"
                     value={testMessage}
                     onChange={(e) => setTestMessage(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -601,7 +671,7 @@ export default function WhatsAppPage() {
               <button
                 type="submit"
                 disabled={configMutation.isPending}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {configMutation.isPending ? 'Salvando...' : 'Salvar Configuração'}
               </button>
@@ -636,7 +706,7 @@ export default function WhatsAppPage() {
                   value={formData.template_agendamento}
                   onChange={(e) => setFormData({ ...formData, template_agendamento: e.target.value })}
                   placeholder="Olá {nome_cliente}! Seu agendamento foi confirmado para {data} às {hora}. Serviço: {servico}. Valor: {valor}."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
                 />
               </div>
 
@@ -649,7 +719,7 @@ export default function WhatsAppPage() {
                   value={formData.template_conclusao}
                   onChange={(e) => setFormData({ ...formData, template_conclusao: e.target.value })}
                   placeholder="Olá {nome_cliente}! Seu serviço foi concluído com sucesso! Obrigado por sua preferência."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
                 />
               </div>
 
@@ -662,7 +732,7 @@ export default function WhatsAppPage() {
                   value={formData.template_lembrete}
                   onChange={(e) => setFormData({ ...formData, template_lembrete: e.target.value })}
                   placeholder="Olá {nome_cliente}! Lembrando: você tem um agendamento amanhã às {hora}. Serviço: {servico}. Te esperamos!"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
                 />
               </div>
 
@@ -675,7 +745,7 @@ export default function WhatsAppPage() {
                   value={formData.template_cancelamento}
                   onChange={(e) => setFormData({ ...formData, template_cancelamento: e.target.value })}
                   placeholder="Olá {nome_cliente}! Seu agendamento de {data} às {hora} foi cancelado. Entre em contato para reagendar!"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
                 />
               </div>
 
@@ -688,7 +758,7 @@ export default function WhatsAppPage() {
                   value={formData.template_reciclagem}
                   onChange={(e) => setFormData({ ...formData, template_reciclagem: e.target.value })}
                   placeholder="Olá {nome_cliente}! Sentimos sua falta no {nome_empresa}. Já faz {meses_inativo} meses desde sua última visita. Agende agora: {link_agendamento}"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
                 />
               </div>
             </div>
@@ -697,7 +767,7 @@ export default function WhatsAppPage() {
               <button
                 type="submit"
                 disabled={configMutation.isPending}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {configMutation.isPending ? 'Salvando...' : 'Salvar Templates'}
               </button>
@@ -717,7 +787,7 @@ export default function WhatsAppPage() {
 
             {loadingInativos ? (
               <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
               </div>
             ) : clientesInativos.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
@@ -757,23 +827,6 @@ export default function WhatsAppPage() {
         )}
       </div>
 
-      {/* Footer Links */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
-          <ExternalLink className="w-4 h-4" />
-          Recursos Úteis
-        </h3>
-        <div className="space-y-1 text-sm text-blue-800">
-          <div>
-            • <a href="https://doc.evolution-api.com" target="_blank" rel="noopener noreferrer" className="underline">
-              Documentação Evolution API
-            </a>
-          </div>
-          <div>
-            • Pasta do projeto: <code className="bg-blue-100 px-1 rounded">evolution-api/README.md</code> para instruções de deploy
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

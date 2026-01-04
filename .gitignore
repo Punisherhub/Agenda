@@ -111,3 +111,4 @@ backend/alembic/versions/*.pyc
 
 # Evolution API (apenas local, deploy separado no Render)
 evolution-api/
+backend/database-recovery/

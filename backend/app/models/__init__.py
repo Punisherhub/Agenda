@@ -10,6 +10,7 @@ from .configuracao_fidelidade import ConfiguracaoFidelidade
 from .premio import Premio
 from .resgate_premio import ResgatePremio
 from .whatsapp_config import WhatsAppConfig
+from .whatsapp_message import WhatsAppMessage
 
 __all__ = [
     "User",
@@ -27,5 +28,6 @@ __all__ = [
     "ConfiguracaoFidelidade",
     "Premio",
     "ResgatePremio",
-    "WhatsAppConfig"
+    "WhatsAppConfig",
+    "WhatsAppMessage"
 ]

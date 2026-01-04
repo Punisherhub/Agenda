@@ -17,7 +17,8 @@ import {
   IdentificationIcon,
   ClockIcon,
   CurrencyDollarIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,
+  StarIcon
 } from '@heroicons/react/24/outline'
 
 const MobileClientesPage: React.FC = () => {
@@ -112,11 +113,11 @@ const MobileClientesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['cliente-historico'] })
       setIsAgendamentoModalOpen(false)
       setClienteParaAgendar(null)
-      alert('✅ Agendamento criado com sucesso!')
+      alert('Agendamento criado com sucesso!')
     },
     onError: (error: any) => {
       const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
-      alert(`❌ Erro ao criar agendamento:\n${errorMsg}`)
+      alert(`Erro ao criar agendamento:\n${errorMsg}`)
     }
   })
 
@@ -160,11 +161,11 @@ const MobileClientesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['cliente-historico'] })
       setIsAgendamentoModalOpen(false)
       setAgendamentoSelecionado(null)
-      alert('✅ Agendamento atualizado com sucesso!')
+      alert('Agendamento atualizado com sucesso!')
     },
     onError: (error: any) => {
       const errorMsg = error.response?.data?.detail || error.message || 'Erro desconhecido'
-      alert(`❌ Erro ao atualizar agendamento:\n${errorMsg}`)
+      alert(`Erro ao atualizar agendamento:\n${errorMsg}`)
     }
   })
 
@@ -306,8 +307,6 @@ const MobileClientesPage: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'AGENDADO': return 'bg-blue-100 text-blue-800'
-      case 'CONFIRMADO': return 'bg-green-100 text-green-800'
-      case 'EM_ANDAMENTO': return 'bg-yellow-100 text-yellow-800'
       case 'CONCLUIDO': return 'bg-emerald-100 text-emerald-800'
       case 'CANCELADO': return 'bg-red-100 text-red-800'
       case 'NAO_COMPARECEU': return 'bg-gray-100 text-gray-800'
@@ -538,7 +537,13 @@ const MobileClientesPage: React.FC = () => {
                 {/* Cabeçalho */}
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 text-lg">{cliente.nome}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-gray-900 text-lg">{cliente.nome}</h3>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
+                        <StarIcon className="w-3 h-3" />
+                        {cliente.pontos || 0}
+                      </span>
+                    </div>
                     <p className="text-xs text-gray-500">ID: {cliente.id}</p>
                     {cliente.cpf && (
                       <p className="text-xs text-gray-500">CPF: {formatCPF(cliente.cpf)}</p>
@@ -717,7 +722,13 @@ const MobileClientesPage: React.FC = () => {
             <>
               {/* Informações do Cliente */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-bold text-gray-900 mb-2">{editingCliente?.nome}</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-bold text-gray-900">{editingCliente?.nome}</h3>
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
+                    <StarIcon className="w-4 h-4" />
+                    {editingCliente?.pontos || 0} pontos
+                  </span>
+                </div>
                 <p className="text-sm text-gray-600 flex items-center gap-1">
                   <PhoneIcon className="w-4 h-4" />
                   {formatTelefone(editingCliente?.telefone)}

@@ -14,8 +14,6 @@ interface ClienteHistoricoModalProps {
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
     'AGENDADO': 'Agendado',
-    'CONFIRMADO': 'Confirmado',
-    'EM_ANDAMENTO': 'Em Andamento',
     'CONCLUIDO': 'Concluído',
     'CANCELADO': 'Cancelado',
     'NAO_COMPARECEU': 'Não Compareceu'
@@ -26,8 +24,6 @@ const getStatusLabel = (status: string) => {
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
     'AGENDADO': 'bg-blue-100 text-blue-800',
-    'CONFIRMADO': 'bg-green-100 text-green-800',
-    'EM_ANDAMENTO': 'bg-yellow-100 text-yellow-800',
     'CONCLUIDO': 'bg-emerald-100 text-emerald-800',
     'CANCELADO': 'bg-red-100 text-red-800',
     'NAO_COMPARECEU': 'bg-gray-100 text-gray-800'

@@ -81,17 +81,34 @@ const ClienteModal: React.FC<ClienteModalProps> = ({
 
     setLoading(true)
     try {
-      // Remove formatação antes de enviar para API
+      // Remove formatação e converte strings vazias em undefined para campos opcionais
       const dataToSave = {
-        ...formData,
+        nome: formData.nome,
         telefone: removeFormatting(formData.telefone),
-        cpf: formData.cpf ? removeFormatting(formData.cpf) : '',
-        cep: formData.cep ? removeFormatting(formData.cep) : ''
+        email: formData.email?.trim() || undefined,
+        cpf: formData.cpf?.trim() ? removeFormatting(formData.cpf) : undefined,
+        data_nascimento: formData.data_nascimento || undefined,
+        genero: formData.genero || undefined,
+        endereco: formData.endereco?.trim() || undefined,
+        cidade: formData.cidade?.trim() || undefined,
+        estado: formData.estado?.trim() || undefined,
+        cep: formData.cep?.trim() ? removeFormatting(formData.cep) : undefined,
+        observacoes: formData.observacoes?.trim() || undefined
       }
       await onSave(dataToSave)
       onClose()
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erro ao salvar cliente')
+      // Extrai mensagens de erro do Pydantic
+      const errorDetail = err.response?.data?.detail
+      if (Array.isArray(errorDetail)) {
+        // Erros de validação do Pydantic
+        const errorMessages = errorDetail.map((e: any) => e.msg).join(', ')
+        setError(errorMessages)
+      } else if (typeof errorDetail === 'string') {
+        setError(errorDetail)
+      } else {
+        setError('Erro ao salvar cliente')
+      }
     } finally {
       setLoading(false)
     }

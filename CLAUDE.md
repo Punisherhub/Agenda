@@ -4,16 +4,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Agenda OnSell - Sistema de Agendamento Empresarial
 
+## 🚨 **CRITICAL SECURITY ISSUE - READ FIRST!**
+
+**⚠️ IMMEDIATE ACTION REQUIRED:**
+
+The following files contain **EXPOSED PRODUCTION DATABASE CREDENTIALS**:
+- `backend/README.md` (lines 26-33) - Contains hardcoded credentials in documentation
+- `backend/app/config.py` (line 10) - Contains hardcoded credentials in code
+
+**Emergency Fix Steps:**
+1. **Rotate database credentials immediately** (change password on Render.com)
+2. **Remove credentials from backend/README.md** - Replace with `.env` instructions
+3. **Update backend/app/config.py** - Remove hardcoded default, require environment variable
+4. **Create .env file** (already gitignored) - Store credentials there only
+5. **Never commit credentials again** - Use config.py pattern with .env overrides
+
+**Proper Pattern:**
+```python
+# config.py - CORRECT way
+database_url: str = os.getenv("DATABASE_URL")  # No default with credentials!
+
+# .env file (gitignored) - ONLY place for real credentials
+DATABASE_URL=postgresql://user:password@host:5432/db?sslmode=require
+```
+
+---
+
 ## 📑 Table of Contents
 
 1. [Quick Reference](#-quick-reference) - Start here for common commands
-2. [Architecture Overview](#-architecture-overview) - System design and structure
-3. [Database](#-database) - Schema, migrations, connection
-4. [Authentication & Permissions](#-authentication--permissions) - JWT, roles, RBAC
-5. [Key Features](#-key-features) - Core functionality documentation
-6. [Development Workflow](#-development-workflow) - How to build features
-7. [Mobile Version](#-mobile-version) - Critical mobile-specific guidance
-8. [Troubleshooting](#-troubleshooting) - Common issues and solutions
+2. [Critical Don'ts](#-critical-donts-read-this-first) - Prevent common mistakes
+3. [Architecture Overview](#-architecture-overview) - System design and structure
+4. [Database](#-database) - Schema, migrations, connection
+5. [Authentication & Permissions](#-authentication--permissions) - JWT, roles, RBAC
+6. [Key Features](#-key-features) - Core functionality documentation
+7. [Development Workflow](#-development-workflow) - How to build features
+8. [Mobile Version](#-mobile-version) - Critical mobile-specific guidance
+9. [Troubleshooting](#-troubleshooting) - Common issues and solutions
 
 ---
 
@@ -45,6 +72,10 @@ cd frontend && npm run dev
 
 ### Most Common Commands
 ```bash
+# Initial Setup
+cd backend && pip install -r requirements.txt    # Install backend dependencies
+cd frontend && npm install                       # Install frontend dependencies
+
 # Database
 cd backend && alembic upgrade head              # Apply migrations
 cd backend && alembic revision --autogenerate -m "description"  # Create migration
@@ -63,26 +94,30 @@ cd frontend && npm run build                     # Production build
 
 ## 🚨 Critical Don'ts (Read This First!)
 
+### Security & Database
+- ❌ **NEVER** commit credentials to git → Always use `.env` (gitignored)
+- ❌ **NEVER** document credentials in code/README → See security warning at top
+- ❌ **NEVER** run migrations without backup in production
+- ❌ **NEVER** hard delete records → Use soft delete (`is_active`, `deleted_at`)
+- ❌ **NEVER** query without tenant filtering (except SUPORTE role)
+- ❌ **NEVER** return passwords in API responses → Exclude in schemas
+
 ### Mobile Development
 - ❌ **NEVER** use `lucide-react` in mobile files → Use emojis instead
 - ❌ **NEVER** use `date-fns` in mobile → Use JavaScript `Date` API only
 - ❌ **NEVER** import desktop components in mobile or vice versa
 - ❌ **NEVER** use `hover:` states in mobile → Use `active:` for touch
 
-### Database
-- ❌ **NEVER** commit real database credentials → Use `.env` (gitignored)
-- ❌ **NEVER** run migrations without backup in production
-- ❌ **NEVER** hard delete records → Use soft delete (`is_active`, `deleted_at`)
-
 ### Code Patterns
 - ❌ **NEVER** put business logic in API routes → Use service layer
-- ❌ **NEVER** query without tenant filtering (except SUPORTE role)
-- ❌ **NEVER** return passwords in API responses → Exclude in schemas
+- ❌ **NEVER** hardcode configuration values → Use database or environment variables
 
 ### WhatsApp Integration
-- ❌ **NEVER** hardcode Evolution API credentials in code → Use database whatsapp_configs table
-- ❌ **NEVER** skip deploying Evolution API → Backend expects separate microservice
-- ❌ **NEVER** hardcode phone numbers in code → Always use database cliente.telefone field
+- ❌ **NEVER** hardcode WhatsApp API credentials → Use database whatsapp_configs table
+- ❌ **NEVER** hardcode phone numbers → Always use database cliente.telefone field
+- ❌ **NEVER** commit evolution-api/ folder → Intentionally excluded, experimental
+- ✅ **USE** WAHA for free WhatsApp → See INTEGRACAO_WAHA_COMPLETA.md for setup
+- ✅ **BOTH** Evolution API and WAHA supported → Choose based on needs
 
 ---
 
@@ -208,7 +243,7 @@ postgresql://user:password@host:port/database?sslmode=require
 cd backend && python -c "from app.database import engine; print('DB OK')"
 ```
 
-### Schema (12 Core Tables)
+### Schema (14 Core Tables)
 
 | Table | Purpose | Key Fields |
 |-------|---------|------------|
@@ -223,7 +258,8 @@ cd backend && python -c "from app.database import engine; print('DB OK')"
 | **configuracao_fidelidade** | Loyalty config | reais_por_ponto, ativo |
 | **premios** | Rewards catalog | nome, pontos_necessarios, quantidade_disponivel |
 | **resgates_premios** | Reward redemptions | cliente_id, premio_id, pontos_gastos |
-| **whatsapp_configs** | WhatsApp settings | meta_token, telefone_id, templates, estabelecimento_id |
+| **whatsapp_configs** | WhatsApp settings | evolution_api_url, waha_url, waha_api_key, templates, estabelecimento_id |
+| **whatsapp_messages** | Message history | message_id, from_number, body, session_name, estabelecimento_id |
 
 ### Important Patterns
 
@@ -262,7 +298,14 @@ alembic downgrade -1
 alembic downgrade <revision_id>
 ```
 
-**Current State**: Latest migration `f9c6017116f8` applied (includes CASCADE fixes, loyalty system, soft delete, WhatsApp integration with HSM templates).
+**Migration Status**: Check current migration with `alembic current`. Latest migration: `b1a2c3d4e5f6` - adds WAHA support, whatsapp_messages table, makes Evolution API fields optional.
+
+**Utility Scripts** (backend/): Helper scripts for database management:
+- `create_suporte_inicial.py` - Creates SUPORTE role user
+- `create_all_tables.py` - Force creates all tables (emergency use only)
+- `create_enums.py` / `drop_enums.py` - Enum type management
+- `mark_migration.py` - Marks migration without running
+- `database-recovery/` - Database recovery scripts and backups
 
 ---
 
@@ -492,18 +535,23 @@ GET /relatorios/valor-estoque        # Current inventory value
 
 ### 5. WhatsApp Business Integration
 
-**Complete WhatsApp integration using Evolution API** (open source, self-hosted).
+**Dual WhatsApp integration**: Choose between **Evolution API** or **WAHA** (both open source, self-hosted).
 
 **Architecture**:
 ```
-Backend (Railway) → Evolution API (Render) → WhatsApp (Meta)
+Backend (Railway) → [Evolution API OR WAHA] (Render) → WhatsApp (Meta)
 ```
 
-**Key Features**:
-- Open source and self-hosted (deploy on Render)
-- Free text templates (no HSM approval needed)
-- Dedicated microservice architecture
-- Persistent connections via PostgreSQL
+**Supported Providers**:
+- **Evolution API** - Full-featured, requires deployment
+- **WAHA** - Free tier available, simpler setup (RECOMMENDED for starting)
+
+**Key Features** (both providers):
+- Open source and self-hosted (deploy on Render free tier)
+- Free text templates (no Meta HSM approval needed)
+- QR Code authentication
+- Persistent connections
+- Webhook support for message history
 
 **Automated Triggers**:
 - New appointment → confirmation message
@@ -530,6 +578,7 @@ Backend (Railway) → Evolution API (Render) → WhatsApp (Meta)
 
 **API Endpoints**:
 ```
+# Evolution API / WAHA Configuration
 GET    /whatsapp/config                        # Get config
 POST   /whatsapp/config                        # Create config (Admin/Manager)
 PUT    /whatsapp/config                        # Update config (Admin/Manager)
@@ -539,6 +588,19 @@ POST   /whatsapp/test                          # Test message (Admin/Manager)
 GET    /whatsapp/clientes-inativos             # List inactive clients
 POST   /whatsapp/send-reciclagem/{cliente_id}  # Send to one client
 POST   /whatsapp/process-reciclagem-cron       # Cron job (no auth)
+
+# WAHA-Specific Endpoints
+POST   /waha/start-session                     # Start WAHA session
+POST   /waha/stop-session                      # Stop WAHA session
+GET    /waha/qrcode                            # Get QR Code
+GET    /waha/status                            # Check connection status
+POST   /waha/logout                            # Reconnect session
+GET    /waha/sessions                          # List sessions (debug)
+
+# WAHA Webhooks (receives messages)
+POST   /waha-webhook/events/{session_name}     # Receive WAHA events (no auth)
+GET    /waha-webhook/health                    # Webhook health check
+GET    /waha-webhook/stats/{session_name}      # Message statistics
 ```
 
 **Evolution API Integration**:
@@ -547,18 +609,66 @@ POST   /whatsapp/process-reciclagem-cron       # Cron job (no auth)
 - Phone number format: `5511999999999` (country + area + number)
 - Simple JSON payload with text field
 
-**Configuration UI** (`/whatsapp` route):
-- Tab 1: Evolution API Credentials (URL, API Key, Instance Name)
-- Tab 2: Templates (free text with placeholders)
-- Tab 3: Inactive Clients (list + send buttons)
+**Configuration UI**:
+- **Evolution API**: `/whatsapp` route
+  - Tab 1: Evolution API Credentials (URL, API Key, Instance Name)
+  - Tab 2: Templates (free text with placeholders)
+  - Tab 3: Inactive Clients (list + send buttons)
 
-**Deploying Evolution API**:
+- **WAHA**: `/waha` route (NEW)
+  - Tab 1: WAHA Credentials (URL, API Key, Session Name) + QR Code display
+  - Tab 2: Templates (free text with placeholders)
+  - Tab 3: Inactive Clients (list + send buttons)
+  - Real-time connection status with auto-refresh
+  - Test message functionality
+
+**Deploying WhatsApp Services**:
+
+### Option A: WAHA (RECOMMENDED for starting)
+
+**Pros**:
+- 100% free on Render free tier
+- Simpler setup (no Prisma build issues)
+- Built-in QR Code UI in frontend
+- Excellent documentation
+- Webhook support for message history
+
+**Setup**:
+1. Deploy to Render using official Docker image: `devlikeapro/waha:latest`
+2. Set environment variables: `WAHA_API_KEY`, `WHATSAPP_HOOK_EVENTS`
+3. Access `/waha` route in frontend
+4. Click "Start Session" and scan QR Code
+5. Done! See `INTEGRACAO_WAHA_COMPLETA.md` for detailed guide
+
+### Option B: Evolution API
+
+**Pros**:
+- More features and advanced capabilities
+- Active community
+- More deployment options
+
+**Cons**:
+- Known Docker build issues (Prisma Client generation crashes)
+- More complex setup
+- Paid hosting recommended for production
+
+**Setup Options**:
+1. **Hosted Service** (Recommended for Production)
+   - Providers: evolution-api.com/pricing, zapmee.com.br
+   - Cost: ~R$ 49/month
+   - Instant setup
+
+2. **Self-hosted** (Not Recommended)
+   - `evolution-api/` folder exists but NOT committed to git
+   - See `EVOLUTION_API_STATUS.md` for known issues
+   - Use official image to avoid Docker build problems
+
+**If you proceed with self-hosted**:
 
 1. **Deploy to Render** (separate microservice):
-   - Navigate to `evolution-api/` folder
-   - Follow `evolution-api/README.md` instructions
-   - Deploy as Docker Web Service on Render
-   - Configure database (same PostgreSQL as backend)
+   - Choose official image deployment (avoid Docker build)
+   - Follow `evolution-api/DEPLOY_IMAGEM_OFICIAL.md` instructions
+   - Configure database (use shared PostgreSQL with separate schema)
 
 2. **Create WhatsApp Instance**:
    ```bash
@@ -589,28 +699,60 @@ POST   /whatsapp/process-reciclagem-cron       # Cron job (no auth)
 ```
 
 **Files**:
-- Evolution API Service: `evolution-api/` (separate microservice)
-  - Dockerfile, docker-compose.yml, README.md
-- Backend Model: `backend/app/models/whatsapp_config.py`
-- Backend Service: `backend/app/services/whatsapp_service.py`
-- Backend API: `backend/app/api/whatsapp.py`
-- Backend Schemas: `backend/app/schemas/whatsapp.py`
-- Frontend Page: `frontend/src/pages/WhatsAppPage.tsx`
-- Frontend Types: `frontend/src/types/index.ts` (WhatsAppConfig interface)
-- Migration: `backend/alembic/versions/a56f52319943_migrate_from_meta_api_to_evolution_api.py`
-- Documentation: `WHATSAPP_IMPLEMENTATION.md`
+- **Backend Models**:
+  - `backend/app/models/whatsapp_config.py` - Configuration (supports both providers)
+  - `backend/app/models/whatsapp_message.py` - Message history (WAHA webhooks)
+- **Backend Services**:
+  - `backend/app/services/whatsapp_service.py` - Evolution API service
+  - `backend/app/services/waha_service.py` - WAHA service
+- **Backend APIs**:
+  - `backend/app/api/whatsapp.py` - Evolution API endpoints
+  - `backend/app/api/waha.py` - WAHA session management
+  - `backend/app/api/waha_webhook.py` - WAHA webhook receiver
+- **Backend Schemas**: `backend/app/schemas/whatsapp.py`
+- **Frontend Pages**:
+  - `frontend/src/pages/WhatsAppPage.tsx` - Evolution API UI
+  - `frontend/src/pages/WAHAPage.tsx` - WAHA UI (with QR Code)
+- **Frontend Types**: `frontend/src/types/index.ts` (WhatsAppConfig interface)
+- **Migrations**:
+  - `backend/alembic/versions/b1a2c3d4e5f6_add_waha_support_keep_evolution.py` - Latest
+- **Documentation**:
+  - `INTEGRACAO_WAHA_COMPLETA.md` - Complete WAHA guide
+  - `PRONTO_WAHA.md` - WAHA migration summary
+  - `WHATSAPP_IMPLEMENTATION.md` - Evolution API details
+  - `EVOLUTION_API_STATUS.md` - Evolution API issues
 
 **Important Notes**:
-- WhatsApp configuration is per-establishment (tenant-isolated)
-- Master toggle `ativado` controls all WhatsApp functionality
-- Individual toggles for each message type
-- Test message feature validates Evolution API connectivity
-- Evolution API must be deployed separately (see `evolution-api/README.md`)
-- No Meta approval needed - instant message deployment
+- **Provider Selection**: System supports both Evolution API and WAHA simultaneously
+- **Database Config**: `whatsapp_configs` table has fields for both providers
+- **UI Routes**: `/whatsapp` for Evolution API, `/waha` for WAHA
+- **Tenant Isolation**: All WhatsApp configs are per-establishment
+- **Message History**: WAHA webhooks save all messages to `whatsapp_messages` table
+- **QR Code**: WAHA displays QR Code directly in frontend UI
+- **No Meta Approval**: Free text templates work with both providers
+- **Recommended**: Start with WAHA (free, simpler), migrate to Evolution API if needed
 
 ---
 
 ## 🔧 Development Workflow
+
+### Git & Version Control
+
+**Important Git Practices**:
+- ⚠️ The `evolution-api/` folder is **NOT tracked by git** - it contains experimental deployment configs with known issues
+- Database utility scripts in `backend/` are also untracked - they're emergency tools, not production code
+- Before committing, always review changes: `git status`, `git diff`
+- Modified files should be reviewed with `git diff` before committing
+- Untracked files may include: documentation updates, utility scripts, database backups
+- Use descriptive commit messages in English
+- Branch naming: `feature/*`, `bugfix/*`, `hotfix/*`
+- Main branch: `main` (also the PR target)
+
+**Files Intentionally Not Committed**:
+- `evolution-api/` - Experimental WhatsApp integration with deployment issues (see EVOLUTION_API_STATUS.md)
+- `backend/database-recovery/` - Database backup and recovery scripts
+- `backend/create_*.py`, `backend/drop_*.py`, `backend/mark_migration.py` - Utility scripts for DB emergencies
+- `.env` files (already in .gitignore) - Environment variables with credentials
 
 ### Standard Feature Development
 
@@ -709,6 +851,9 @@ DEBUG=False
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 TIMEZONE=America/Sao_Paulo
+CORS_ORIGINS=https://your-frontend.com,https://your-other-domain.com
+
+# Note: config.py has development defaults hardcoded (must override in production!)
 ```
 
 ---
@@ -942,6 +1087,8 @@ alembic upgrade head
 2. **Refresh Token**: Endpoint exists but not fully implemented
 3. **Render.com DB**: May hibernate after inactivity (first request has cold start latency)
 4. **TypeScript**: Some `any` types in Vite config (optional chaining on `import.meta`)
+5. **Evolution API Deployment**: Docker build crashes after Prisma Client generation - see EVOLUTION_API_STATUS.md for alternatives
+6. **Uncommitted Files**: Several utility scripts and evolution-api folder are not tracked in git (intentional)
 
 ---
 
@@ -997,14 +1144,23 @@ alembic upgrade head
 - Desktop responsive UI
 - Mobile app (separate codebase)
 - Support admin interface (cross-company)
-- **WhatsApp Integration via Evolution API** (open source)
-  - Separate Evolution API microservice (deploy on Render)
-  - Frontend configuration page with 3 tabs
-  - Backend API with all endpoints
+- **Dual WhatsApp Integration** (choose Evolution API OR WAHA)
+  - **WAHA Integration** (RECOMMENDED)
+    - Frontend page `/waha` with QR Code display
+    - Real-time connection status
+    - Message history via webhooks
+    - 100% free deployment on Render
+    - Complete setup guide: `INTEGRACAO_WAHA_COMPLETA.md`
+  - **Evolution API Integration** (alternative)
+    - Frontend page `/whatsapp`
+    - Requires paid hosting or complex self-hosting
+    - More features but higher cost
+- **WhatsApp Features** (both providers):
   - Free text template system (no Meta approval needed)
+  - Automated notifications (appointments, reminders, recycling)
+  - Client recycling system (inactive client recovery)
   - QR Code-based connection
-- **Automated WhatsApp notifications** (appointments, reminders, recycling)
-- **Client recycling system** (inactive client recovery)
+  - Webhook support for message tracking
 
 **⚠️ Partial/Future**:
 - PDF/Excel export
@@ -1029,12 +1185,32 @@ These scripts automatically open two terminals and start both services.
 
 ---
 
-**Last Updated**: 2025-12-18
-**Version**: 1.3
+**Last Updated**: 2026-01-04
+**Version**: 1.6.0
 **Maintainer**: Development Team
+
+**Changelog**:
+- v1.6.0 (2026-01-04): **CRITICAL** - Elevated security warning to top of file, identified credentials in backend/app/config.py (line 10), added emergency fix steps, streamlined "Critical Don'ts" section
+- v1.5.2 (2026-01-03): Updated security warning about backend/README.md credentials, minor clarity improvements
+- v1.5.1 (2025-12-28): Added dependency installation commands, cleaned up duplicate Git section, minor improvements
+- v1.5.0 (2025-12-27): WAHA integration added as recommended WhatsApp provider, updated table count (14 tables), added WAHA endpoints and UI documentation
+- v1.4.1 (2025-12-23): Added security warning about backend/README.md credentials
+- v1.4 (2025-12-21): Added git workflow section, updated Evolution API deployment status, added utility scripts documentation, fixed table count (13 tables)
+- v1.3 (2025-12-18): WhatsApp integration via Evolution API
+- v1.2: Mobile version documentation
+- v1.1: Loyalty program and financial reports
+- v1.0: Initial documentation
 
 ---
 
 ## 📱 Additional Documentation
 
-For detailed WhatsApp implementation information, see `WHATSAPP_IMPLEMENTATION.md`.
+### WhatsApp Integration Guides
+- **WAHA Complete Guide**: `INTEGRACAO_WAHA_COMPLETA.md` - Step-by-step WAHA setup (RECOMMENDED)
+- **WAHA Migration Summary**: `PRONTO_WAHA.md` - Quick reference for WAHA migration
+- **WhatsApp Implementation**: `WHATSAPP_IMPLEMENTATION.md` - Evolution API details
+- **Evolution API Status**: `EVOLUTION_API_STATUS.md` - Known issues and alternatives
+
+### Other Documentation
+- **Mobile Formatting**: `frontend/FORMATACAO_CAMPOS.md` - Mobile-specific field formatting
+- **Mobile README**: `frontend/MOBILE_README.md` - Mobile version documentation

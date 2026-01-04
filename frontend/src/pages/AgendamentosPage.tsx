@@ -451,7 +451,6 @@ const AgendamentosPage: React.FC = () => {
             >
               <option value="">Todos</option>
               <option value="AGENDADO">Agendado</option>
-              <option value="CONFIRMADO">Confirmado</option>
               <option value="CONCLUIDO">Concluído</option>
               <option value="CANCELADO">Cancelado</option>
               <option value="NAO_COMPARECEU">Não Compareceu</option>
@@ -579,8 +578,6 @@ const AgendamentosPage: React.FC = () => {
                         className={`px-2 py-1 text-xs rounded-full ${
                           agendamento.status === 'AGENDADO'
                             ? 'bg-blue-100 text-blue-800'
-                            : agendamento.status === 'CONFIRMADO'
-                            ? 'bg-green-100 text-green-800'
                             : agendamento.status === 'CONCLUIDO'
                             ? 'bg-emerald-100 text-emerald-800 font-bold'
                             : agendamento.status === 'CANCELADO'
@@ -599,7 +596,7 @@ const AgendamentosPage: React.FC = () => {
                       R$ {Number(agendamento.valor_final || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-1">
-                      {['AGENDADO', 'CONFIRMADO'].includes(agendamento.status) && (
+                      {agendamento.status === 'AGENDADO' && (
                         <>
                           <button
                             onClick={() => handleUpdateStatusOld(agendamento.id, 'CONCLUIDO')}
@@ -636,7 +633,7 @@ const AgendamentosPage: React.FC = () => {
                       {agendamento.status === 'NAO_COMPARECEU' && (
                         <>
                           <button
-                            onClick={() => handleUpdateStatusOld(agendamento.id, 'CONFIRMADO')}
+                            onClick={() => handleUpdateStatusOld(agendamento.id, 'AGENDADO')}
                             disabled={processingIds.has(agendamento.id)}
                             className="btn-success px-2 py-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
                           >

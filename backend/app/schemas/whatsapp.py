@@ -6,10 +6,15 @@ from datetime import datetime
 # ==================== WhatsAppConfig ====================
 
 class WhatsAppConfigBase(BaseModel):
-    # Evolution API Credentials
-    evolution_api_url: str = Field(..., description="URL da Evolution API (ex: https://evolution.onrender.com)")
-    evolution_api_key: str = Field(..., description="API Key da Evolution API")
-    evolution_instance_name: str = Field(..., description="Nome da instância WhatsApp")
+    # Evolution API Credentials (OPCIONAL - para compatibilidade)
+    evolution_api_url: Optional[str] = Field(None, description="URL da Evolution API (ex: https://evolution.onrender.com)")
+    evolution_api_key: Optional[str] = Field(None, description="API Key da Evolution API")
+    evolution_instance_name: Optional[str] = Field(None, description="Nome da instância WhatsApp")
+
+    # WAHA Credentials (OPCIONAL - nova alternativa)
+    waha_url: Optional[str] = Field(None, description="URL do WAHA (ex: https://waha.onrender.com)")
+    waha_api_key: Optional[str] = Field(None, description="API Key do WAHA (X-Api-Key)")
+    waha_session_name: Optional[str] = Field(None, description="Nome da sessão WAHA")
 
     # Templates (texto livre com placeholders)
     template_agendamento: Optional[str] = Field(None, description="Template para novo agendamento")
@@ -40,6 +45,11 @@ class WhatsAppConfigUpdate(BaseModel):
     evolution_api_url: Optional[str] = None
     evolution_api_key: Optional[str] = None
     evolution_instance_name: Optional[str] = None
+
+    # WAHA Credentials
+    waha_url: Optional[str] = None
+    waha_api_key: Optional[str] = None
+    waha_session_name: Optional[str] = None
 
     # Templates
     template_agendamento: Optional[str] = None
@@ -80,7 +90,7 @@ class WhatsAppMessageRequest(BaseModel):
 
 class WhatsAppMessageResponse(BaseModel):
     sucesso: bool
-    mensagem_id: Optional[str] = None  # ID da mensagem retornado pela Evolution API
+    mensagem_id: Optional[str] = None  # ID da mensagem retornado pela API
     erro: Optional[str] = None
     telefone_destino: str
 
@@ -90,3 +100,31 @@ class WhatsAppMessageResponse(BaseModel):
 class WhatsAppTestRequest(BaseModel):
     telefone: str = Field(..., description="Número de telefone para teste (formato: +5511999999999)")
     mensagem: str = Field(..., description="Mensagem de teste")
+
+
+# ==================== WAHA Webhook Events ====================
+
+class WAHAWebhookEvent(BaseModel):
+    """Evento recebido via webhook do WAHA"""
+    event: str = Field(..., description="Nome do evento (ex: message.any, message.ack)")
+    session: str = Field(..., description="Nome da sessão")
+    payload: dict = Field(..., description="Payload do evento")
+    environment: Optional[dict] = None
+    engine: Optional[str] = None
+
+
+# ==================== WhatsApp QR Code ====================
+
+class WhatsAppQRCodeResponse(BaseModel):
+    base64: str = Field(..., description="QR Code em formato base64 (data:image/png;base64,...)")
+    code: Optional[str] = Field(None, description="Código alternativo de pareamento")
+    count: int = Field(..., description="Tentativas de conexão")
+
+
+# ==================== WhatsApp Connection Status ====================
+
+class WhatsAppConnectionStatus(BaseModel):
+    connected: bool = Field(..., description="Status de conexão")
+    instance: str = Field(..., description="Nome da instância/sessão")
+    status: str = Field(..., description="Status detalhado (open/WORKING, close/STOPPED, etc)")
+    qrcode: Optional[WhatsAppQRCodeResponse] = Field(None, description="QR Code se não conectado")

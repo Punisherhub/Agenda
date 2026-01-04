@@ -7,7 +7,6 @@ from enum import Enum
 
 class StatusAgendamento(str, Enum):
     AGENDADO = "AGENDADO"
-    CONFIRMADO = "CONFIRMADO"
     CONCLUIDO = "CONCLUIDO"
     CANCELADO = "CANCELADO"
     NAO_COMPARECEU = "NAO_COMPARECEU"

@@ -52,7 +52,7 @@ export interface Agendamento {
   data_agendamento: string
   data_inicio: string
   data_fim: string
-  status: 'AGENDADO' | 'CONFIRMADO' | 'CONCLUIDO' | 'CANCELADO' | 'NAO_COMPARECEU'
+  status: 'AGENDADO' | 'CONCLUIDO' | 'CANCELADO' | 'NAO_COMPARECEU'
   observacoes: string | null
   observacoes_internas: string | null
   valor_servico: number
@@ -334,26 +334,29 @@ export interface PremioDisponivel {
   pontos_faltantes: number
 }
 
-// ==================== Sistema de WhatsApp ====================
+// ==================== Sistema de WhatsApp (Evolution API + WAHA) ====================
 
 export interface WhatsAppConfig {
   id: number
-  meta_token: string
-  telefone_id: string
+  // Evolution API Credentials (opcional)
+  evolution_api_url: string | null
+  evolution_api_key: string | null
+  evolution_instance_name: string | null
+  // WAHA Credentials (opcional - nova alternativa)
+  waha_url: string | null
+  waha_api_key: string | null
+  waha_session_name: string | null
+  // Templates
   template_agendamento: string | null
   template_lembrete: string | null
-  template_confirmacao: string | null
+  template_conclusao: string | null
   template_cancelamento: string | null
   template_reciclagem: string | null
-  meta_template_agendamento: string | null
-  meta_template_lembrete: string | null
-  meta_template_confirmacao: string | null
-  meta_template_cancelamento: string | null
-  meta_template_reciclagem: string | null
+  // Configurações
   ativado: boolean
   enviar_agendamento: boolean
   enviar_lembrete: boolean
-  enviar_confirmacao: boolean
+  enviar_conclusao: boolean
   enviar_cancelamento: boolean
   enviar_reciclagem: boolean
   meses_inatividade: number
@@ -364,22 +367,25 @@ export interface WhatsAppConfig {
 }
 
 export interface WhatsAppConfigCreate {
-  meta_token: string
-  telefone_id: string
+  // Evolution API Credentials (opcional)
+  evolution_api_url?: string | null
+  evolution_api_key?: string | null
+  evolution_instance_name?: string | null
+  // WAHA Credentials (opcional)
+  waha_url?: string | null
+  waha_api_key?: string | null
+  waha_session_name?: string | null
+  // Templates
   template_agendamento?: string
   template_lembrete?: string
-  template_confirmacao?: string
+  template_conclusao?: string
   template_cancelamento?: string
   template_reciclagem?: string
-  meta_template_agendamento?: string
-  meta_template_lembrete?: string
-  meta_template_confirmacao?: string
-  meta_template_cancelamento?: string
-  meta_template_reciclagem?: string
+  // Configurações
   ativado?: boolean
   enviar_agendamento?: boolean
   enviar_lembrete?: boolean
-  enviar_confirmacao?: boolean
+  enviar_conclusao?: boolean
   enviar_cancelamento?: boolean
   enviar_reciclagem?: boolean
   meses_inatividade?: number
@@ -388,22 +394,25 @@ export interface WhatsAppConfigCreate {
 }
 
 export interface WhatsAppConfigUpdate {
-  meta_token?: string
-  telefone_id?: string
+  // Evolution API Credentials (opcional)
+  evolution_api_url?: string | null
+  evolution_api_key?: string | null
+  evolution_instance_name?: string | null
+  // WAHA Credentials (opcional)
+  waha_url?: string | null
+  waha_api_key?: string | null
+  waha_session_name?: string | null
+  // Templates
   template_agendamento?: string
   template_lembrete?: string
-  template_confirmacao?: string
+  template_conclusao?: string
   template_cancelamento?: string
   template_reciclagem?: string
-  meta_template_agendamento?: string
-  meta_template_lembrete?: string
-  meta_template_confirmacao?: string
-  meta_template_cancelamento?: string
-  meta_template_reciclagem?: string
+  // Configurações
   ativado?: boolean
   enviar_agendamento?: boolean
   enviar_lembrete?: boolean
-  enviar_confirmacao?: boolean
+  enviar_conclusao?: boolean
   enviar_cancelamento?: boolean
   enviar_reciclagem?: boolean
   meses_inatividade?: number
@@ -427,7 +436,7 @@ export interface WhatsAppMessageResponse {
 }
 
 export interface WhatsAppTestRequest {
-  telefone_destino: string
+  telefone: string
   mensagem: string
 }
 
@@ -438,3 +447,22 @@ export interface ClienteInativo {
   ultimo_agendamento: string | null
   meses_inativo: number
 }
+
+export interface WhatsAppQRCode {
+  base64?: string  // Evolution API
+  qr?: string  // WAHA (data:image/png;base64,...)
+  code: string | null
+  count?: number
+}
+
+export interface WhatsAppConnectionStatus {
+  connected: boolean
+  instance?: string  // Evolution API
+  session?: string  // WAHA
+  status: string
+  qrcode: WhatsAppQRCode | null
+  me?: any  // WAHA - informações do WhatsApp conectado
+}
+
+// Tipos de provedor WhatsApp
+export type WhatsAppProvider = 'evolution' | 'waha'

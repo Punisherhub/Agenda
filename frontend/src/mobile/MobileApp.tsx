@@ -8,6 +8,7 @@ import MobileServicosPage from './pages/MobileServicosPage'
 import MobileMateriaisPage from './pages/MobileMateriaisPage'
 import MobileRelatoriosPage from './pages/MobileRelatoriosPage'
 import MobileFidelidadePage from './pages/MobileFidelidadePage'
+import MobileWAHAPage from './pages/MobileWAHAPage'
 import MobileProtectedRoute from './components/MobileProtectedRoute'
 
 const MobileApp: React.FC = () => {
@@ -56,6 +57,12 @@ const MobileApp: React.FC = () => {
       <Route path="/fidelidade" element={
         <MobileProtectedRoute>
           <MobileFidelidadePage />
+        </MobileProtectedRoute>
+      } />
+
+      <Route path="/waha" element={
+        <MobileProtectedRoute>
+          <MobileWAHAPage />
         </MobileProtectedRoute>
       } />
 

@@ -9,8 +9,8 @@ import ServicosPage from './pages/ServicosPage'
 import MateriaisPage from './pages/MateriaisPage'
 import RelatoriosPage from './pages/RelatoriosPage'
 import FidelidadePage from './pages/FidelidadePage'
-import WhatsAppPage from './pages/WhatsAppPage'
 import SuportePage from './pages/SuportePage'
+import WAHAPage from './pages/WAHAPage'
 import SuporteLoginPage from './pages/SuporteLoginPage'
 
 // Components
@@ -59,7 +59,7 @@ function App() {
         } />
         <Route path="whatsapp" element={
           <RoleProtectedRoute allowedRoles={['admin', 'manager']}>
-            <WhatsAppPage />
+            <WAHAPage />
           </RoleProtectedRoute>
         } />
       </Route>

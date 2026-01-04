@@ -2,6 +2,17 @@ import React, { useState } from 'react'
 import { Agendamento, Servico, Cliente } from '../../types'
 import { useQuery } from '@tanstack/react-query'
 import { materiaisApi } from '../../services/api'
+import {
+  UserIcon,
+  PhoneIcon,
+  ScissorsIcon,
+  CalendarIcon,
+  ClockIcon,
+  CurrencyDollarIcon,
+  ChatBubbleLeftIcon,
+  CubeIcon,
+  EnvelopeIcon
+} from '@heroicons/react/24/outline'
 
 interface MobileAgendamentoDetailModalProps {
   isOpen: boolean
@@ -77,10 +88,6 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
     switch (status) {
       case 'AGENDADO':
         return 'bg-blue-100 text-blue-800'
-      case 'CONFIRMADO':
-        return 'bg-green-100 text-green-800'
-      case 'EM_ANDAMENTO':
-        return 'bg-yellow-100 text-yellow-800'
       case 'CONCLUIDO':
         return 'bg-emerald-100 text-emerald-800'
       case 'CANCELADO':
@@ -95,8 +102,6 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'AGENDADO': return 'Agendado'
-      case 'CONFIRMADO': return 'Confirmado'
-      case 'EM_ANDAMENTO': return 'Em Andamento'
       case 'CONCLUIDO': return 'Concluído'
       case 'CANCELADO': return 'Cancelado'
       case 'NAO_COMPARECEU': return 'Não Compareceu'
@@ -142,8 +147,8 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
     const isCanceladoOuNaoCompareceu = ['CANCELADO', 'NAO_COMPARECEU'].includes(agendamento.status)
 
     const mensagem = isCanceladoOuNaoCompareceu
-      ? '⚠️ Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nEsta ação NÃO PODE ser desfeita!'
-      : '⚠️ ATENÇÃO: Este agendamento NÃO está cancelado!\n\nVocê está prestes a EXCLUIR PERMANENTEMENTE um agendamento ativo.\nEsta ação NÃO PODE ser desfeita!\n\nRecomendamos CANCELAR antes de excluir.\n\nDeseja continuar mesmo assim?'
+      ? 'Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nEsta ação NÃO PODE ser desfeita!'
+      : 'ATENÇÃO: Este agendamento NÃO está cancelado!\n\nVocê está prestes a EXCLUIR PERMANENTEMENTE um agendamento ativo.\nEsta ação NÃO PODE ser desfeita!\n\nRecomendamos CANCELAR antes de excluir.\n\nDeseja continuar mesmo assim?'
 
     if (confirm(mensagem)) {
       setUpdating(true)
@@ -205,7 +210,7 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
           {cliente && (
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-bold text-gray-900 mb-3 flex items-center">
-                <span className="text-xl mr-2">👤</span>
+                <UserIcon className="w-6 h-6 mr-2" />
                 Cliente
               </h3>
               <div className="space-y-2 text-sm">
@@ -213,12 +218,12 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
                   <span className="font-semibold text-gray-700">Nome:</span> {cliente.nome}
                 </div>
                 <div className="flex items-center">
-                  <span className="text-lg mr-2">📞</span>
+                  <PhoneIcon className="w-5 h-5 mr-2" />
                   {cliente.telefone}
                 </div>
                 {cliente.email && (
                   <div className="flex items-center">
-                    <span className="text-lg mr-2">✉️</span>
+                    <EnvelopeIcon className="w-5 h-5 mr-2" />
                     {cliente.email}
                   </div>
                 )}
@@ -235,7 +240,7 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
           {/* Serviço */}
           <div className="bg-blue-50 rounded-lg p-4">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center">
-              <span className="text-xl mr-2">✂️</span>
+              <ScissorsIcon className="w-6 h-6 mr-2" />
               Serviço
             </h3>
             {servico ? (
@@ -282,7 +287,7 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
           {/* Data e Hora */}
           <div className="bg-green-50 rounded-lg p-4">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center">
-              <span className="text-xl mr-2">📅</span>
+              <CalendarIcon className="w-6 h-6 mr-2" />
               Data e Horário
             </h3>
             <div className="space-y-2 text-sm">
@@ -291,7 +296,7 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
                 {formatData(agendamento.data_inicio)}
               </div>
               <div className="flex items-center">
-                <span className="text-lg mr-2">🕐</span>
+                <ClockIcon className="w-5 h-5 mr-2" />
                 {formatHora(agendamento.data_inicio)} às {formatHora(agendamento.data_fim)}
               </div>
             </div>
@@ -300,7 +305,7 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
           {/* Valores */}
           <div className="bg-yellow-50 rounded-lg p-4">
             <h3 className="font-bold text-gray-900 mb-3 flex items-center">
-              <span className="text-xl mr-2">💰</span>
+              <CurrencyDollarIcon className="w-6 h-6 mr-2" />
               Valores
             </h3>
             <div className="space-y-2 text-sm">
@@ -327,7 +332,7 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
           {agendamento.observacoes && (
             <div className="bg-purple-50 rounded-lg p-4">
               <h3 className="font-bold text-gray-900 mb-3 flex items-center">
-                <span className="text-xl mr-2">💬</span>
+                <ChatBubbleLeftIcon className="w-6 h-6 mr-2" />
                 Observações
               </h3>
               <p className="text-sm text-gray-700">{agendamento.observacoes}</p>
@@ -338,7 +343,7 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
           {agendamento.status === 'CONCLUIDO' && consumos && consumos.length > 0 && (
             <div className="bg-orange-50 rounded-lg p-4">
               <h3 className="font-bold text-gray-900 mb-3 flex items-center">
-                <span className="text-xl mr-2">📦</span>
+                <CubeIcon className="w-6 h-6 mr-2" />
                 Materiais Utilizados
               </h3>
               <div className="space-y-2">
@@ -379,39 +384,39 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
               {/* Ações de conclusão (apenas para status não finalizados) */}
               {!['CONCLUIDO', 'CANCELADO'].includes(agendamento.status) && (
                 <>
-                  {['AGENDADO', 'CONFIRMADO', 'EM_ANDAMENTO'].includes(agendamento.status) && (
+                  {agendamento.status === 'AGENDADO' && (
                     <>
                       <button
                         onClick={handleConcluirComConsumo}
                         disabled={updating || loading}
                         className="w-full px-4 py-3 bg-emerald-600 text-white rounded-lg font-semibold active:bg-emerald-700 disabled:bg-gray-400"
                       >
-                        {updating || loading ? '⟳ Processando...' : '✅ Concluir com Materiais'}
+                        {updating || loading ? 'Processando...' : 'Concluir com Materiais'}
                       </button>
                       <button
                         onClick={handleConcluirSemConsumo}
                         disabled={updating || loading}
                         className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold active:bg-blue-700 disabled:bg-gray-400"
                       >
-                        {updating || loading ? '⟳ Processando...' : '✅ Concluir sem Materiais'}
+                        {updating || loading ? 'Processando...' : 'Concluir sem Materiais'}
                       </button>
                       <button
                         onClick={() => handleUpdateStatus('NAO_COMPARECEU')}
                         disabled={updating || loading}
                         className="w-full px-4 py-3 bg-gray-600 text-white rounded-lg font-semibold active:bg-gray-700 disabled:bg-gray-400"
                       >
-                        {updating || loading ? '⟳ Processando...' : '❌ Não Compareceu'}
+                        {updating || loading ? 'Processando...' : 'Não Compareceu'}
                       </button>
                     </>
                   )}
 
                   {canReativar && (
                     <button
-                      onClick={() => handleUpdateStatus('CONFIRMADO')}
+                      onClick={() => handleUpdateStatus('AGENDADO')}
                       disabled={updating || loading}
                       className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold active:bg-green-700 disabled:bg-gray-400"
                     >
-                      {updating || loading ? '⟳ Processando...' : '🔄 Reagendar / Confirmar'}
+                      {updating || loading ? 'Processando...' : 'Reagendar'}
                     </button>
                   )}
                 </>
@@ -426,7 +431,7 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
                   }}
                   className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold active:bg-blue-700"
                 >
-                  ✏️ Editar Agendamento
+                  Editar Agendamento
                 </button>
               )}
 
@@ -447,7 +452,7 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
                     disabled={updating || loading}
                     className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold active:bg-red-700 disabled:bg-gray-400"
                   >
-                    🗑️ Excluir
+                    Excluir
                   </button>
                 )}
               </div>

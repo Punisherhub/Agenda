@@ -60,17 +60,17 @@ const MobileMaterialModal: React.FC<MobileMaterialModalProps> = ({
 
     // Validação
     if (!formData.nome.trim()) {
-      alert('⚠️ Nome é obrigatório')
+      alert('Nome é obrigatório')
       return
     }
 
     if (!formData.valor_custo || Number(formData.valor_custo) < 0) {
-      alert('⚠️ Valor custo deve ser maior ou igual a zero')
+      alert('Valor custo deve ser maior ou igual a zero')
       return
     }
 
     if (!formData.quantidade_estoque || Number(formData.quantidade_estoque) < 0) {
-      alert('⚠️ Quantidade em estoque deve ser maior ou igual a zero')
+      alert('Quantidade em estoque deve ser maior ou igual a zero')
       return
     }
 
@@ -81,11 +81,11 @@ const MobileMaterialModal: React.FC<MobileMaterialModalProps> = ({
       estabelecimento_id = currentUser.estabelecimento_id
 
       if (!estabelecimento_id) {
-        alert('⚠️ Erro: Usuário não possui estabelecimento vinculado')
+        alert('Erro: Usuário não possui estabelecimento vinculado')
         return
       }
     } catch (error) {
-      alert('⚠️ Erro: Não foi possível obter dados do usuário. Faça login novamente.')
+      alert('Erro: Não foi possível obter dados do usuário. Faça login novamente.')
       return
     }
 

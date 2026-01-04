@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { authApi } from '../../services/api'
 import logoSAS from '../../assets/SAS.png'
 import '../styles/mobile.css'
@@ -97,9 +98,13 @@ const MobileLoginPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 mobile-button p-2 text-xl"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 mobile-button p-2"
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? (
+                    <EyeSlashIcon className="w-6 h-6" />
+                  ) : (
+                    <EyeIcon className="w-6 h-6" />
+                  )}
                 </button>
               </div>
             </div>

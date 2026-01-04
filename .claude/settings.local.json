@@ -19,7 +19,15 @@
       "Bash(powershell -Command \"Stop-Process -Id 12836 -Force\")",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(alembic current:*)",
+      "WebSearch",
+      "WebFetch(domain:doc.evolution-api.com)",
+      "WebFetch(domain:waha.devlike.pro)",
+      "WebFetch(domain:evoapicloud.com)",
+      "Bash(powershell -Command \"Stop-Process -Id 3660 -Force\")",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []
