@@ -45,11 +45,12 @@ class KeepAliveService:
 
             for config in configs:
                 try:
-                    # Fazer ping no endpoint de health do WAHA
-                    health_url = f"{config.waha_url.rstrip('/')}/health"
+                    # Fazer ping no endpoint de sessões do WAHA (disponível na versão free)
+                    # Endpoint /health requer versão Plus, /api/sessions é gratuito
+                    sessions_url = f"{config.waha_url.rstrip('/')}/api/sessions"
 
                     response = requests.get(
-                        health_url,
+                        sessions_url,
                         headers={'X-Api-Key': config.waha_api_key},
                         timeout=10
                     )
@@ -62,7 +63,7 @@ class KeepAliveService:
                         stats['results'].append({
                             'estabelecimento_id': config.estabelecimento_id,
                             'status': 'success',
-                            'url': health_url
+                            'url': sessions_url
                         })
                     else:
                         stats['failed'] += 1
