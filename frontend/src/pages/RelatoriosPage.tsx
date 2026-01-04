@@ -189,7 +189,7 @@ const RelatoriosPage: React.FC = () => {
               <XAxis dataKey="data" />
               <YAxis />
               <Tooltip
-                formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                formatter={(value) => typeof value === 'number' ? `R$ ${value.toFixed(2)}` : 'R$ 0,00'}
               />
               <Legend />
               <Line type="monotone" dataKey="Receita" stroke="#10b981" strokeWidth={2} />
@@ -208,7 +208,7 @@ const RelatoriosPage: React.FC = () => {
               <XAxis dataKey="nome" angle={-45} textAnchor="end" height={80} />
               <YAxis />
               <Tooltip
-                formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                formatter={(value) => typeof value === 'number' ? `R$ ${value.toFixed(2)}` : 'R$ 0,00'}
               />
               <Legend />
               <Bar dataKey="receita" fill="#10b981" name="Receita" />
