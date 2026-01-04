@@ -2,15 +2,56 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from app.api import auth, users, empresas, estabelecimentos, servicos, clientes, agendamentos, materiais, relatorios, fidelidade, whatsapp, waha, waha_webhook
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.api import auth, users, empresas, estabelecimentos, servicos, clientes, agendamentos, materiais, relatorios, fidelidade, whatsapp, waha, waha_webhook, keepalive
 from app.config import settings
-from app.database import engine, Base
+from app.database import engine, Base, SessionLocal
+from app.services.keepalive_service import KeepAliveService
+
+# Scheduler global para keep-alive
+scheduler = BackgroundScheduler()
+
+
+def scheduled_waha_ping():
+    """Job agendado para fazer ping no WAHA a cada 10 minutos"""
+    db = SessionLocal()
+    try:
+        KeepAliveService.ping_waha_instances(db)
+    except Exception as e:
+        print(f"[SCHEDULER] Erro ao executar ping WAHA: {str(e)}")
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Gerencia ciclo de vida da aplicação"""
+    # Startup: Iniciar scheduler
+    print("[STARTUP] Iniciando scheduler de keep-alive...")
+    scheduler.add_job(
+        scheduled_waha_ping,
+        'interval',
+        minutes=10,
+        id='waha_keepalive',
+        replace_existing=True
+    )
+    scheduler.start()
+    print("[STARTUP] Scheduler iniciado - Pings a cada 10 minutos")
+
+    yield  # Aplicação rodando
+
+    # Shutdown: Parar scheduler
+    print("[SHUTDOWN] Parando scheduler...")
+    scheduler.shutdown()
+    print("[SHUTDOWN] Scheduler parado")
 
 app = FastAPI(
     title="Agenda OnSell API",
     description="Sistema de agendamento empresarial para prestadores de serviços",
     version="2.0.0",
-    debug=settings.debug
+    debug=settings.debug,
+    lifespan=lifespan
 )
 
 # Handler para erros de validação (modo desenvolvimento - mostra detalhes)
@@ -74,6 +115,9 @@ app.include_router(waha_webhook.router, tags=["🔔 WAHA Webhooks"])
 
 # Rotas de relatórios
 app.include_router(relatorios.router, prefix="/relatorios", tags=["📊 Relatórios"])
+
+# Rotas de keep-alive
+app.include_router(keepalive.router, tags=["🔄 Keep-Alive"])
 
 
 @app.get("/")
