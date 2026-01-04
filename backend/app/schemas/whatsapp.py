@@ -19,7 +19,7 @@ class WhatsAppConfigBase(BaseModel):
     # Templates (texto livre com placeholders)
     template_agendamento: Optional[str] = Field(None, description="Template para novo agendamento")
     template_lembrete: Optional[str] = Field(None, description="Template para lembrete 24h antes")
-    template_confirmacao: Optional[str] = Field(None, description="Template para confirmação")
+    template_conclusao: Optional[str] = Field(None, description="Template para conclusão")
     template_cancelamento: Optional[str] = Field(None, description="Template para cancelamento")
     template_reciclagem: Optional[str] = Field(None, description="Template para reciclagem")
 
@@ -27,7 +27,7 @@ class WhatsAppConfigBase(BaseModel):
     ativado: bool = False
     enviar_agendamento: bool = True
     enviar_lembrete: bool = True
-    enviar_confirmacao: bool = True
+    enviar_conclusao: bool = True
     enviar_cancelamento: bool = True
     enviar_reciclagem: bool = False
 
@@ -54,7 +54,7 @@ class WhatsAppConfigUpdate(BaseModel):
     # Templates
     template_agendamento: Optional[str] = None
     template_lembrete: Optional[str] = None
-    template_confirmacao: Optional[str] = None
+    template_conclusao: Optional[str] = None
     template_cancelamento: Optional[str] = None
     template_reciclagem: Optional[str] = None
 
@@ -62,7 +62,7 @@ class WhatsAppConfigUpdate(BaseModel):
     ativado: Optional[bool] = None
     enviar_agendamento: Optional[bool] = None
     enviar_lembrete: Optional[bool] = None
-    enviar_confirmacao: Optional[bool] = None
+    enviar_conclusao: Optional[bool] = None
     enviar_cancelamento: Optional[bool] = None
     enviar_reciclagem: Optional[bool] = None
     meses_inatividade: Optional[int] = None
