@@ -32,12 +32,12 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(
         scheduled_waha_ping,
         'interval',
-        minutes=10,
+        minutes=5,
         id='waha_keepalive',
         replace_existing=True
     )
     scheduler.start()
-    print("[STARTUP] Scheduler iniciado - Pings a cada 10 minutos")
+    print("[STARTUP] Scheduler iniciado - Pings a cada 5 minutos")
 
     yield  # Aplicação rodando
 
