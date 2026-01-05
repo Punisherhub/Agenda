@@ -124,14 +124,6 @@ const MobileAgendamentosPage: React.FC = () => {
     }
   })
 
-  // Mutation deletar
-  const deleteMutation = useMutation({
-    mutationFn: agendamentosApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
-    }
-  })
-
   // Mutation atualizar agendamento
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => agendamentosApi.update(id, data),
@@ -243,11 +235,6 @@ const MobileAgendamentosPage: React.FC = () => {
       console.error('Erro ao salvar agendamento:', error)
       // Erro já tratado no onError da mutation
     }
-  }
-
-  // Handler para deletar
-  const handleDelete = async (id: number) => {
-    await deleteMutation.mutateAsync(id)
   }
 
   // Handler para editar
@@ -569,9 +556,8 @@ const MobileAgendamentosPage: React.FC = () => {
         onEdit={handleEdit}
         onUpdateStatus={handleUpdateStatus}
         onCancel={handleCancel}
-        onDelete={handleDelete}
         onConcluirComMateriais={handleConcluirComMateriais}
-        loading={updateStatusMutation.isPending || cancelMutation.isPending || deleteMutation.isPending}
+        loading={updateStatusMutation.isPending || cancelMutation.isPending}
       />
 
       {/* Modal de Consumo de Materiais */}

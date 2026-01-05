@@ -16,7 +16,6 @@ interface AgendamentoDetailModalProps {
   onEdit?: (agendamento: Agendamento) => void
   onUpdateStatus?: (id: number, status: string) => Promise<void>
   onCancel?: (id: number) => Promise<void>
-  onDelete?: (id: number) => Promise<void>
   loading?: boolean
 }
 
@@ -29,7 +28,6 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
   onEdit,
   onUpdateStatus,
   onCancel,
-  onDelete,
   // loading = false
 }) => {
   const [updating, setUpdating] = useState(false)
@@ -120,33 +118,6 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
     }
   }
 
-  const handleDelete = async () => {
-    const isCanceladoOuNaoCompareceu = ['CANCELADO', 'NAO_COMPARECEU'].includes(agendamento.status)
-
-    const mensagem = isCanceladoOuNaoCompareceu
-      ? '⚠️ Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nEsta ação NÃO PODE ser desfeita!'
-      : '⚠️ ATENÇÃO: Este agendamento NÃO está cancelado!\n\nVocê está prestes a EXCLUIR PERMANENTEMENTE um agendamento ativo.\nEsta ação NÃO PODE ser desfeita!\n\nRecomendamos CANCELAR antes de excluir.\n\nDeseja continuar mesmo assim?'
-
-    if (confirm(mensagem)) {
-      setUpdating(true)
-      try {
-        if (onDelete) {
-          console.log('Excluindo agendamento:', agendamento.id)
-          await onDelete(agendamento.id)
-          console.log('Agendamento excluído com sucesso')
-          onClose()
-        } else {
-          console.error('onDelete não está definido')
-        }
-      } catch (error) {
-        console.error('Erro ao excluir agendamento:', error)
-        alert('Erro ao excluir agendamento: ' + (error as any)?.response?.data?.detail || (error as Error).message)
-      } finally {
-        setUpdating(false)
-      }
-    }
-  }
-
   const handleConcluirComConsumo = () => {
     // Abrir modal de consumo de materiais antes de concluir
     setConsumoModalOpen(true)
@@ -185,7 +156,6 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
 
   const canEdit = onEdit !== undefined && !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status)
   const canCancel = onCancel !== undefined && !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status)
-  const canDelete = onDelete !== undefined // Sempre pode deletar se a função estiver disponível
   const canReativar = agendamento.status === 'NAO_COMPARECEU'
 
   return (
@@ -233,17 +203,6 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
                 >
                   <X className="w-4 h-4 mr-1" />
                   Cancelar
-                </button>
-              )}
-              {canDelete && (
-                <button
-                  onClick={handleDelete}
-                  disabled={updating}
-                  className="flex items-center px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
-                  title="Excluir agendamento permanentemente"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Excluir
                 </button>
               )}
             </div>

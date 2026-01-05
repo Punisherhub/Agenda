@@ -23,7 +23,6 @@ interface MobileAgendamentoDetailModalProps {
   onEdit: (agendamento: Agendamento) => void
   onUpdateStatus: (id: number, status: string) => Promise<void>
   onCancel: (id: number) => Promise<void>
-  onDelete?: (id: number) => Promise<void>
   onConcluirComMateriais: (agendamento: Agendamento) => void
   loading?: boolean
 }
@@ -37,7 +36,6 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
   onEdit,
   onUpdateStatus,
   onCancel,
-  onDelete,
   onConcluirComMateriais,
   loading = false
 }) => {
@@ -143,29 +141,6 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
     }
   }
 
-  const handleDelete = async () => {
-    const isCanceladoOuNaoCompareceu = ['CANCELADO', 'NAO_COMPARECEU'].includes(agendamento.status)
-
-    const mensagem = isCanceladoOuNaoCompareceu
-      ? 'Tem certeza que deseja EXCLUIR PERMANENTEMENTE este agendamento?\n\nEsta ação NÃO PODE ser desfeita!'
-      : 'ATENÇÃO: Este agendamento NÃO está cancelado!\n\nVocê está prestes a EXCLUIR PERMANENTEMENTE um agendamento ativo.\nEsta ação NÃO PODE ser desfeita!\n\nRecomendamos CANCELAR antes de excluir.\n\nDeseja continuar mesmo assim?'
-
-    if (confirm(mensagem)) {
-      setUpdating(true)
-      try {
-        if (onDelete) {
-          await onDelete(agendamento.id)
-          onClose()
-        }
-      } catch (error) {
-        console.error('Erro ao excluir agendamento:', error)
-        alert('Erro ao excluir agendamento: ' + (error as any)?.response?.data?.detail || (error as Error).message)
-      } finally {
-        setUpdating(false)
-      }
-    }
-  }
-
   const handleConcluirComConsumo = () => {
     onConcluirComMateriais(agendamento)
   }
@@ -176,7 +151,6 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
 
   const canEdit = !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status)
   const canCancel = !['CONCLUIDO', 'CANCELADO'].includes(agendamento.status)
-  const canDelete = onDelete !== undefined
   const canReativar = agendamento.status === 'NAO_COMPARECEU'
 
   return (
@@ -435,37 +409,15 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
                 </button>
               )}
 
-              {/* Cancelar e Excluir */}
-              <div className="flex gap-2">
-                {canCancel && (
-                  <button
-                    onClick={handleCancel}
-                    disabled={updating || loading}
-                    className="flex-1 px-4 py-3 bg-orange-600 text-white rounded-lg font-semibold active:bg-orange-700 disabled:bg-gray-400"
-                  >
-                    🚫 Cancelar
-                  </button>
-                )}
-                {canDelete && (
-                  <button
-                    onClick={handleDelete}
-                    disabled={updating || loading}
-                    className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold active:bg-red-700 disabled:bg-gray-400"
-                  >
-                    Excluir
-                  </button>
-                )}
-              </div>
-
-              {/* Mensagem para agendamentos finalizados */}
-              {['CONCLUIDO', 'CANCELADO'].includes(agendamento.status) && (
-                <div className="text-center py-2">
-                  <p className="text-sm text-gray-500 italic">
-                    {agendamento.status === 'CONCLUIDO'
-                      ? 'Agendamento concluído. Apenas exclusão disponível.'
-                      : 'Agendamento cancelado. Apenas exclusão disponível.'}
-                  </p>
-                </div>
+              {/* Cancelar */}
+              {canCancel && (
+                <button
+                  onClick={handleCancel}
+                  disabled={updating || loading}
+                  className="w-full px-4 py-3 bg-orange-600 text-white rounded-lg font-semibold active:bg-orange-700 disabled:bg-gray-400"
+                >
+                  🚫 Cancelar
+                </button>
               )}
             </div>
           </div>

@@ -152,14 +152,6 @@ const AgendamentosPage: React.FC = () => {
     }
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: agendamentosApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-relatorios'] })
-    }
-  })
-
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => agendamentosApi.update(id, data),
     onSuccess: () => {
@@ -210,16 +202,6 @@ const AgendamentosPage: React.FC = () => {
     await cancelMutation.mutateAsync(id)
   }
 
-  const handleDelete = async (id: number) => {
-    console.log('handleDelete chamado com ID:', id)
-    try {
-      await deleteMutation.mutateAsync(id)
-      console.log('Mutation executada com sucesso')
-    } catch (error) {
-      console.error('Erro na mutation:', error)
-      throw error
-    }
-  }
 
   // Handlers para drag and drop no calendário
   const handleEventResize = async (data: { event: any; start: Date; end: Date }) => {
@@ -700,8 +682,7 @@ const AgendamentosPage: React.FC = () => {
         onEdit={handleEditAgendamento}
         onUpdateStatus={handleUpdateStatus}
         onCancel={handleCancel}
-        onDelete={handleDelete}
-        loading={updateStatusMutation.isPending || cancelMutation.isPending || deleteMutation.isPending}
+        loading={updateStatusMutation.isPending || cancelMutation.isPending}
       />
     </div>
   )

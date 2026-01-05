@@ -142,17 +142,6 @@ const MobileClientesPage: React.FC = () => {
     }
   })
 
-  // Mutation deletar agendamento
-  const deleteAgendamentoMutation = useMutation({
-    mutationFn: agendamentosApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agendamentos'] })
-      queryClient.invalidateQueries({ queryKey: ['cliente-historico'] })
-      setIsAgendamentoDetailOpen(false)
-      setAgendamentoSelecionado(null)
-    }
-  })
-
   // Mutation atualizar agendamento
   const updateAgendamentoMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => agendamentosApi.update(id, data),
@@ -294,11 +283,6 @@ const MobileClientesPage: React.FC = () => {
     }
   }
 
-  const handleDeleteAgendamento = async (id: number) => {
-    if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-      await deleteAgendamentoMutation.mutateAsync(id)
-    }
-  }
 
   const handleConcluirComMateriais = () => {
     alert('Funcionalidade de materiais não disponível no histórico. Acesse a página de Agendamentos.')
@@ -845,9 +829,8 @@ const MobileClientesPage: React.FC = () => {
         onEdit={handleEditAgendamento}
         onUpdateStatus={handleUpdateStatus}
         onCancel={handleCancelAgendamento}
-        onDelete={handleDeleteAgendamento}
         onConcluirComMateriais={handleConcluirComMateriais}
-        loading={updateStatusMutation.isPending || cancelAgendamentoMutation.isPending || deleteAgendamentoMutation.isPending}
+        loading={updateStatusMutation.isPending || cancelAgendamentoMutation.isPending}
       />
     </MobileLayout>
   )
