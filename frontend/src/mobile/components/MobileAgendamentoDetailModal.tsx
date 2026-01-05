@@ -313,6 +313,17 @@ const MobileAgendamentoDetailModal: React.FC<MobileAgendamentoDetailModalProps> 
             </div>
           )}
 
+          {/* Veículo */}
+          {agendamento.veiculo && (
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h3 className="font-bold text-gray-900 mb-3 flex items-center">
+                <span className="text-2xl mr-2">🚗</span>
+                Veículo
+              </h3>
+              <p className="text-sm text-gray-700">{agendamento.veiculo}</p>
+            </div>
+          )}
+
           {/* Materiais Consumidos */}
           {agendamento.status === 'CONCLUIDO' && consumos && consumos.length > 0 && (
             <div className="bg-orange-50 rounded-lg p-4">

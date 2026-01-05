@@ -55,6 +55,7 @@ export interface Agendamento {
   status: 'AGENDADO' | 'CONCLUIDO' | 'CANCELADO' | 'NAO_COMPARECEU'
   observacoes: string | null
   observacoes_internas: string | null
+  veiculo: string | null  // Modelo e placa do veículo
   valor_servico: number
   valor_desconto: number
   valor_final: number
@@ -113,6 +114,7 @@ export interface AgendamentoCreate {
   data_inicio: string
   data_fim?: string
   observacoes?: string
+  veiculo?: string  // Modelo e placa do veículo
   valor_desconto?: number
 
   // Campos para serviço personalizado

@@ -81,6 +81,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
           data_inicio_time: format(dataInicio, 'HH:mm'),
           data_fim_time: format(dataFim, 'HH:mm'),
           observacoes: agendamento.observacoes || '',
+          veiculo: agendamento.veiculo || '',
           valor_desconto: agendamento.valor_desconto || 0,
           servico_personalizado: isPersonalizado,
           servico_personalizado_nome: agendamento.servico_personalizado_nome || '',
@@ -100,6 +101,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
           data_inicio_time: format(dataDefault, 'HH:mm'),
           data_fim_time: format(dataFimDefault, 'HH:mm'),
           observacoes: '',
+          veiculo: '',
           valor_desconto: 0,
           servico_personalizado: false,
           servico_personalizado_nome: '',
@@ -309,6 +311,7 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
         data_inicio: dataInicioISO,
         data_fim: dataFimISO,
         observacoes: data.observacoes || undefined,
+        veiculo: data.veiculo || undefined,
         valor_desconto: Number(data.valor_desconto) || 0
       }
 
@@ -658,6 +661,19 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
               className="input w-full"
               rows={3}
               placeholder="Observações sobre o agendamento..."
+            />
+          </div>
+
+          {/* Veículo */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Veículo (Modelo e Placa)
+            </label>
+            <input
+              type="text"
+              {...register('veiculo')}
+              className="input w-full"
+              placeholder="Ex: Honda Civic - ABC1234"
             />
           </div>
 

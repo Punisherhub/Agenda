@@ -35,6 +35,7 @@ class Agendamento(Base):
     status = Column(Enum(StatusAgendamento), default=StatusAgendamento.AGENDADO, index=True)
     observacoes = Column(Text, nullable=True)
     observacoes_internas = Column(Text, nullable=True)  # Observações só para funcionários
+    veiculo = Column(String(200), nullable=True)  # Modelo e placa do veículo (ex: "Honda Civic - ABC1234")
 
     # Serviço personalizado
     servico_personalizado = Column(Boolean, default=False)  # True se é serviço personalizado

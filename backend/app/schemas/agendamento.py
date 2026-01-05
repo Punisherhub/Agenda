@@ -27,6 +27,7 @@ class AgendamentoCreate(BaseModel):
     cliente_id: int
     servico_id: Union[int, None] = None  # Aceita int ou None explicitamente
     observacoes: Optional[str] = None
+    veiculo: Optional[str] = None  # Modelo e placa do veículo
     valor_desconto: Optional[Decimal] = Field(default=0, ge=0)
 
     # Campos para serviço personalizado
@@ -103,6 +104,7 @@ class AgendamentoResponse(BaseModel):
     status: StatusAgendamento
     observacoes: Optional[str] = None
     observacoes_internas: Optional[str] = None
+    veiculo: Optional[str] = None  # Modelo e placa do veículo
     valor_servico: Decimal
     valor_desconto: Decimal
     valor_final: Decimal

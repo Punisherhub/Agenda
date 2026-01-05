@@ -46,6 +46,7 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
   const [horaFim, setHoraFim] = useState('')
   const [valorDesconto, setValorDesconto] = useState('0')
   const [observacoes, setObservacoes] = useState('')
+  const [veiculo, setVeiculo] = useState('')
 
   // Fidelidade
   const [premiosDisponiveis, setPremiosDisponiveis] = useState<PremioDisponivel[]>([])
@@ -92,6 +93,7 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
 
           setValorDesconto(agendamento.valor_desconto.toString())
           setObservacoes(agendamento.observacoes || '')
+          setVeiculo(agendamento.veiculo || '')
           setIsServicoPersonalizado(false)
         } else {
           // Modo criação - preencher com valores padrão (usando horário local, não UTC)
@@ -122,6 +124,7 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
           setHoraFim('')
           setValorDesconto('0')
           setObservacoes('')
+          setVeiculo('')
         }
         setShowClienteList(false)
       } catch (error) {
@@ -330,6 +333,7 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
       data_inicio: dataInicioISO,
       data_fim: dataFimISO,
       observacoes: observacoes || undefined,
+      veiculo: veiculo || undefined,
       valor_desconto: parseFloat(valorDesconto) || 0
     }
 
@@ -664,6 +668,20 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
             className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base"
             rows={3}
             placeholder="Observações sobre o agendamento..."
+          />
+        </div>
+
+        {/* Veículo */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Veículo (Modelo e Placa)
+          </label>
+          <input
+            type="text"
+            value={veiculo}
+            onChange={(e) => setVeiculo(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base"
+            placeholder="Ex: Honda Civic - ABC1234"
           />
         </div>
 

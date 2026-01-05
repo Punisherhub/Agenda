@@ -296,7 +296,8 @@ class WhatsAppService:
                         'servico': agendamento.servico.nome if agendamento.servico else agendamento.servico_personalizado_nome or '',
                         'vendedor': agendamento.vendedor.full_name if agendamento.vendedor else '',
                         'valor': f"R$ {agendamento.valor_final:.2f}" if agendamento.valor_final else '',
-                        'status': agendamento.status.value if agendamento.status else ''
+                        'status': agendamento.status.value if agendamento.status else '',
+                        'veiculo': agendamento.veiculo or ''
                     })
 
             message_text = WhatsAppService._replace_placeholders(template, placeholders)
