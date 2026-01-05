@@ -625,6 +625,13 @@ export default function WhatsAppPage() {
                 <div><code className="bg-blue-100 px-1 rounded">{'{nome_empresa}'}</code> - Nome da empresa</div>
                 <div><code className="bg-blue-100 px-1 rounded">{'{link_agendamento}'}</code> - Link agendamento</div>
               </div>
+              <div className="mt-3 pt-3 border-t border-blue-300">
+                <p className="text-sm font-medium text-blue-900 mb-2">Extras (apenas reciclagem):</p>
+                <div className="grid grid-cols-2 gap-2 text-sm text-purple-800">
+                  <div><code className="bg-purple-100 px-1 rounded">{'{meses_inativo}'}</code> - Meses sem visita</div>
+                  <div><code className="bg-purple-100 px-1 rounded">{'{data_ultimo_servico}'}</code> - Data último serviço</div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-6">

@@ -303,6 +303,45 @@ class WhatsAppService:
 
                     logger.info(f"[WHATSAPP] Placeholders preparados: {placeholders}")
 
+            # Placeholders extras para mensagens de RECICLAGEM
+            if tipo == 'RECICLAGEM':
+                from zoneinfo import ZoneInfo
+                BRAZIL_TZ = ZoneInfo("America/Sao_Paulo")
+
+                # Buscar último agendamento do cliente
+                ultimo_agendamento = db.query(Agendamento).filter(
+                    Agendamento.cliente_id == cliente.id,
+                    Agendamento.deleted_at.is_(None)
+                ).order_by(Agendamento.data_inicio.desc()).first()
+
+                if ultimo_agendamento and ultimo_agendamento.data_inicio:
+                    # Garantir que está no timezone do Brasil
+                    agora_br = datetime.now(BRAZIL_TZ)
+                    if ultimo_agendamento.data_inicio.tzinfo is None:
+                        ultimo_br = ultimo_agendamento.data_inicio.replace(tzinfo=BRAZIL_TZ)
+                    else:
+                        ultimo_br = ultimo_agendamento.data_inicio.astimezone(BRAZIL_TZ)
+
+                    # Calcular meses de inatividade
+                    delta = agora_br - ultimo_br
+                    meses_inativo = int(delta.days / 30)  # Aproximação
+
+                    # Formatar data do último serviço
+                    data_ultimo_servico = ultimo_br.strftime('%d/%m/%Y')
+
+                    placeholders.update({
+                        'meses_inativo': str(meses_inativo),
+                        'data_ultimo_servico': data_ultimo_servico
+                    })
+
+                    logger.info(f"[WHATSAPP] Placeholders reciclagem: meses={meses_inativo}, data={data_ultimo_servico}")
+                else:
+                    # Se não tem agendamento anterior, usar valores padrão
+                    placeholders.update({
+                        'meses_inativo': '0',
+                        'data_ultimo_servico': 'N/A'
+                    })
+
             message_text = WhatsAppService._replace_placeholders(template, placeholders)
             logger.info(f"[WHATSAPP] Mensagem final após substituir placeholders: {message_text}")
 

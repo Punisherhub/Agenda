@@ -663,8 +663,7 @@ export default function MobileWAHAPage() {
                 <div className="text-sm text-gray-700">
                   <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">{'{link_agendamento}'}</code>
                   <span className="ml-2 text-gray-600">Link agendamento</span>
-                </div> 
-                {/*
+                </div>
                 <div className="text-sm text-gray-700 pt-2 border-t border-gray-200">
                   <strong className="text-gray-900">Extras (apenas reciclagem):</strong>
                 </div>
@@ -674,9 +673,8 @@ export default function MobileWAHAPage() {
                 </div>
                 <div className="text-sm text-gray-700">
                   <code className="bg-purple-100 px-1.5 py-0.5 rounded text-purple-900">{'{data_ultimo_servico}'}</code>
-                  <span className="ml-2 text-gray-600">Data último serviço</span>   
+                  <span className="ml-2 text-gray-600">Data último serviço</span>
                 </div>
-                */}
               </div>
             )}
 
