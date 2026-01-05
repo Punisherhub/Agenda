@@ -88,12 +88,12 @@ const MobileLayoutTailwind: React.FC<MobileLayoutTailwindProps> = ({ children })
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-72 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 h-full w-72 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Sidebar Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4">
+        {/* Sidebar Header - Fixed Top */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <img
               src={logoOnSell}
@@ -113,8 +113,8 @@ const MobileLayoutTailwind: React.FC<MobileLayoutTailwindProps> = ({ children })
           </div>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="py-4">
+        {/* Navigation Items - Scrollable Middle */}
+        <nav className="flex-1 overflow-y-auto py-4">
           {navItems.map((item, index) => {
             const isActive = location.pathname === item.path
             const Icon = item.icon
@@ -135,8 +135,8 @@ const MobileLayoutTailwind: React.FC<MobileLayoutTailwindProps> = ({ children })
           })}
         </nav>
 
-        {/* Sidebar Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        {/* Sidebar Footer - Fixed Bottom */}
+        <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white">
           <button
             onClick={() => {
               handleLogout()
