@@ -226,6 +226,8 @@ class WhatsAppService:
                 template = config.template_cancelamento
             elif tipo == 'RECICLAGEM':
                 template = config.template_reciclagem
+            elif tipo == 'ANIVERSARIO':
+                template = config.template_aniversario
 
             if not template:
                 raise HTTPException(
@@ -233,22 +235,29 @@ class WhatsAppService:
                     detail=f"Template não configurado para tipo {tipo}"
                 )
 
-            # Busca nome da empresa do estabelecimento
+            # Busca nome da empresa e endereço do estabelecimento
             from app.models.estabelecimento import Estabelecimento
             from app.models.empresa import Empresa
             estabelecimento = db.query(Estabelecimento).filter(
                 Estabelecimento.id == estabelecimento_id
             ).first()
             nome_empresa = ''
-            if estabelecimento and estabelecimento.empresa_id:
-                empresa = db.query(Empresa).filter(Empresa.id == estabelecimento.empresa_id).first()
-                nome_empresa = empresa.nome if empresa else estabelecimento.nome
+            endereco_estabelecimento = ''
+            if estabelecimento:
+                if estabelecimento.empresa_id:
+                    empresa = db.query(Empresa).filter(Empresa.id == estabelecimento.empresa_id).first()
+                    nome_empresa = empresa.nome if empresa else estabelecimento.nome
+                else:
+                    nome_empresa = estabelecimento.nome
+                # Endereço do estabelecimento
+                endereco_estabelecimento = estabelecimento.endereco or ''
 
             # Busca dados do agendamento se fornecido
             placeholders = {
                 'nome_cliente': cliente.nome,
                 'telefone_cliente': cliente.telefone,
-                'nome_empresa': nome_empresa
+                'nome_empresa': nome_empresa,
+                'endereco': endereco_estabelecimento
             }
 
             if message_request.agendamento_id:
@@ -641,4 +650,65 @@ class WhatsAppService:
                 logger.error(f"Erro ao enviar lembrete para agendamento {agendamento.id}: {str(e)}")
                 stats['erros'] += 1
 
+        return stats
+
+    @staticmethod
+    def process_aniversarios_cron(db: Session) -> Dict[str, Any]:
+        """Processa envio de mensagens de aniversário (CRON)"""
+        from zoneinfo import ZoneInfo
+        from sqlalchemy import extract
+
+        BRAZIL_TZ = ZoneInfo("America/Sao_Paulo")
+
+        stats = {
+            'estabelecimentos_processados': 0,
+            'mensagens_enviadas': 0,
+            'erros': 0
+        }
+
+        # Busca todos estabelecimentos com WhatsApp ativo e aniversário habilitado
+        configs = db.query(WhatsAppConfig).filter(
+            WhatsAppConfig.ativado == True,
+            WhatsAppConfig.enviar_aniversario == True
+        ).all()
+
+        # Pega dia e mês atual (Brasil timezone)
+        hoje = datetime.now(BRAZIL_TZ)
+        dia_atual = hoje.day
+        mes_atual = hoje.month
+
+        logger.info(f"[ANIVERSARIOS_CRON] Processando aniversariantes. Hoje: {hoje.strftime('%d/%m/%Y')}")
+
+        for config in configs:
+            stats['estabelecimentos_processados'] += 1
+
+            # Busca clientes aniversariantes do dia
+            clientes_aniversariantes = db.query(Cliente).filter(
+                Cliente.estabelecimento_id == config.estabelecimento_id,
+                Cliente.is_active == True,
+                Cliente.data_nascimento.isnot(None),
+                extract('day', Cliente.data_nascimento) == dia_atual,
+                extract('month', Cliente.data_nascimento) == mes_atual
+            ).all()
+
+            logger.info(f"[ANIVERSARIOS_CRON] Estabelecimento {config.estabelecimento_id}: {len(clientes_aniversariantes)} aniversariante(s)")
+
+            # Envia para cada aniversariante
+            for cliente in clientes_aniversariantes:
+                try:
+                    WhatsAppService.send_message(
+                        db=db,
+                        estabelecimento_id=config.estabelecimento_id,
+                        message_request=WhatsAppMessageRequest(
+                            cliente_id=cliente.id,
+                            tipo_mensagem='ANIVERSARIO'
+                        )
+                    )
+                    stats['mensagens_enviadas'] += 1
+                    logger.info(f"[ANIVERSARIOS_CRON] Mensagem enviada para {cliente.nome}")
+                except Exception as e:
+                    logger.error(f"Erro ao enviar aniversário para cliente {cliente.id}: {str(e)}")
+                    stats['erros'] += 1
+
+        logger.info(f"[ANIVERSARIOS_CRON] Finalizado. Stats: {stats}")
         return stats

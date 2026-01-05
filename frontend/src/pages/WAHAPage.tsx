@@ -22,12 +22,14 @@ export default function WAHAPage() {
     template_conclusao: '',
     template_cancelamento: '',
     template_reciclagem: '',
+    template_aniversario: '',
     ativado: false,
     enviar_agendamento: true,
     enviar_lembrete: true,
     enviar_conclusao: true,
     enviar_cancelamento: true,
     enviar_reciclagem: false,
+    enviar_aniversario: true,
     meses_inatividade: 3,
     link_agendamento: '',
   })
@@ -48,12 +50,14 @@ export default function WAHAPage() {
             template_conclusao: configData.template_conclusao || '',
             template_cancelamento: configData.template_cancelamento || '',
             template_reciclagem: configData.template_reciclagem || '',
+            template_aniversario: configData.template_aniversario || '',
             ativado: configData.ativado,
             enviar_agendamento: configData.enviar_agendamento,
             enviar_lembrete: configData.enviar_lembrete,
             enviar_conclusao: configData.enviar_conclusao,
             enviar_cancelamento: configData.enviar_cancelamento,
             enviar_reciclagem: configData.enviar_reciclagem,
+            enviar_aniversario: configData.enviar_aniversario,
             meses_inatividade: configData.meses_inatividade,
             link_agendamento: configData.link_agendamento || '',
           })
@@ -581,6 +585,19 @@ export default function WAHAPage() {
                       Reciclagem de Inativos
                     </label>
                   </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="enviar_aniversario"
+                      checked={formData.enviar_aniversario}
+                      onChange={(e) => setFormData({ ...formData, enviar_aniversario: e.target.checked })}
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    />
+                    <label htmlFor="enviar_aniversario" className="ml-2 text-sm text-gray-700">
+                      Aniversário
+                    </label>
+                  </div>
                 </div>
 
                 <div>
@@ -683,7 +700,7 @@ export default function WAHAPage() {
         {activeTab === 'templates' && (
           <form onSubmit={handleSaveConfig} className="space-y-6">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <h3 className="font-medium text-blue-900 mb-2">Placeholders Disponíveis:</h3>
+              <h3 className="font-medium text-blue-900 mb-2">Placeholders Disponíveis (podem ser usados em qualquer template):</h3>
               <div className="grid grid-cols-3 gap-2 text-sm text-blue-800">
                 <div><code className="bg-blue-100 px-1 rounded">{'{nome_cliente}'}</code> - Nome do cliente</div>
                 <div><code className="bg-blue-100 px-1 rounded">{'{data}'}</code> - Data (dd/mm/yyyy)</div>
@@ -693,6 +710,7 @@ export default function WAHAPage() {
                 <div><code className="bg-blue-100 px-1 rounded">{'{valor}'}</code> - Valor (R$ XX,XX)</div>
                 <div><code className="bg-blue-100 px-1 rounded">{'{veiculo}'}</code> - Modelo e placa</div>
                 <div><code className="bg-blue-100 px-1 rounded">{'{nome_empresa}'}</code> - Nome da empresa</div>
+                <div><code className="bg-blue-100 px-1 rounded">{'{endereco}'}</code> - Endereço do estabelecimento</div>
                 <div><code className="bg-blue-100 px-1 rounded">{'{link_agendamento}'}</code> - Link agendamento</div>
               </div>
               <div className="mt-3 pt-3 border-t border-blue-300">
@@ -766,6 +784,19 @@ export default function WAHAPage() {
                   value={formData.template_reciclagem}
                   onChange={(e) => setFormData({ ...formData, template_reciclagem: e.target.value })}
                   placeholder="Olá {nome_cliente}! Sentimos sua falta no {nome_empresa}. Já faz {meses_inativo} meses desde sua última visita. Agende agora: {link_agendamento}"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Template: Aniversário
+                </label>
+                <textarea
+                  rows={5}
+                  value={formData.template_aniversario}
+                  onChange={(e) => setFormData({ ...formData, template_aniversario: e.target.value })}
+                  placeholder="Parabéns, {nome_cliente}! Hoje é um dia especial! Nós da {nome_empresa} desejamos feliz aniversário! Venha nos visitar em {endereco}!"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm"
                 />
               </div>

@@ -16,12 +16,13 @@ class WhatsAppConfigBase(BaseModel):
     waha_api_key: Optional[str] = Field(None, description="API Key do WAHA (X-Api-Key)")
     waha_session_name: Optional[str] = Field(None, description="Nome da sessão WAHA")
 
-    # Templates (texto livre com placeholders)
+    # Templates (texto livre com placeholders: {nome_cliente}, {endereco}, {data}, {hora}, etc)
     template_agendamento: Optional[str] = Field(None, description="Template para novo agendamento")
     template_lembrete: Optional[str] = Field(None, description="Template para lembrete 24h antes")
     template_conclusao: Optional[str] = Field(None, description="Template para conclusão")
     template_cancelamento: Optional[str] = Field(None, description="Template para cancelamento")
     template_reciclagem: Optional[str] = Field(None, description="Template para reciclagem")
+    template_aniversario: Optional[str] = Field(None, description="Template para aniversário")
 
     # Configurações de envio
     ativado: bool = False
@@ -30,6 +31,7 @@ class WhatsAppConfigBase(BaseModel):
     enviar_conclusao: bool = True
     enviar_cancelamento: bool = True
     enviar_reciclagem: bool = False
+    enviar_aniversario: bool = True
 
     # Configurações de reciclagem
     meses_inatividade: int = Field(3, description="Meses sem agendamento para considerar inativo")
@@ -57,6 +59,7 @@ class WhatsAppConfigUpdate(BaseModel):
     template_conclusao: Optional[str] = None
     template_cancelamento: Optional[str] = None
     template_reciclagem: Optional[str] = None
+    template_aniversario: Optional[str] = None
 
     # Configurações
     ativado: Optional[bool] = None
@@ -65,6 +68,7 @@ class WhatsAppConfigUpdate(BaseModel):
     enviar_conclusao: Optional[bool] = None
     enviar_cancelamento: Optional[bool] = None
     enviar_reciclagem: Optional[bool] = None
+    enviar_aniversario: Optional[bool] = None
     meses_inatividade: Optional[int] = None
     link_agendamento: Optional[str] = None
 
@@ -83,7 +87,7 @@ class WhatsAppConfigResponse(WhatsAppConfigBase):
 
 class WhatsAppMessageRequest(BaseModel):
     cliente_id: int = Field(..., description="ID do cliente para enviar mensagem")
-    tipo_mensagem: str = Field(..., description="Tipo: AGENDAMENTO, LEMBRETE, CONFIRMACAO, CANCELAMENTO, RECICLAGEM")
+    tipo_mensagem: str = Field(..., description="Tipo: AGENDAMENTO, LEMBRETE, CONFIRMACAO, CANCELAMENTO, RECICLAGEM, ANIVERSARIO")
     agendamento_id: Optional[int] = Field(None, description="ID do agendamento (se aplicável)")
     mensagem_customizada: Optional[str] = Field(None, description="Mensagem customizada (sobrescreve template)")
 

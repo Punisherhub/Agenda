@@ -18,12 +18,13 @@ class WhatsAppConfig(Base):
     waha_api_key = Column(String(500), nullable=False)          # API Key do WAHA (X-Api-Key header)
     waha_session_name = Column(String(100), nullable=False)     # Nome da sessão WAHA (padrão: "default")
 
-    # Templates de Mensagens (texto livre com placeholders {nome_cliente}, {data}, {hora}, etc.)
+    # Templates de Mensagens (texto livre com placeholders {nome_cliente}, {data}, {hora}, {endereco}, etc.)
     template_agendamento = Column(Text, nullable=True)  # Confirmação de novo agendamento
     template_lembrete = Column(Text, nullable=True)     # Lembrete 24h antes
     template_conclusao = Column(Text, nullable=True)    # Notificação de conclusão do serviço
     template_cancelamento = Column(Text, nullable=True) # Notificação de cancelamento
     template_reciclagem = Column(Text, nullable=True)   # Reciclagem de clientes inativos
+    template_aniversario = Column(Text, nullable=True)  # Mensagem de aniversário
 
     # Configurações de envio
     ativado = Column(Boolean, default=False)  # Ativar/desativar WhatsApp para este estabelecimento
@@ -32,6 +33,7 @@ class WhatsAppConfig(Base):
     enviar_conclusao = Column(Boolean, default=True)        # Enviar ao concluir serviço
     enviar_cancelamento = Column(Boolean, default=True)     # Enviar ao cancelar
     enviar_reciclagem = Column(Boolean, default=False)      # Enviar campanhas de reciclagem
+    enviar_aniversario = Column(Boolean, default=True)      # Enviar mensagem de aniversário
 
     # Configurações de reciclagem/inatividade
     meses_inatividade = Column(Integer, default=3)  # Meses sem agendamento para considerar inativo

@@ -47,7 +47,8 @@ const MobileClientesPage: React.FC = () => {
     telefone: '',
     email: '',
     cpf: '',
-    endereco: ''
+    endereco: '',
+    data_nascimento: ''
   })
 
   // Buscar clientes com filtros
@@ -223,11 +224,12 @@ const MobileClientesPage: React.FC = () => {
         telefone: cliente.telefone,
         email: cliente.email || '',
         cpf: cliente.cpf || '',
-        endereco: cliente.endereco || ''
+        endereco: cliente.endereco || '',
+        data_nascimento: cliente.data_nascimento || ''
       })
     } else {
       setEditingCliente(null)
-      setFormData({ nome: '', telefone: '', email: '', cpf: '', endereco: '' })
+      setFormData({ nome: '', telefone: '', email: '', cpf: '', endereco: '', data_nascimento: '' })
     }
     setIsModalOpen(true)
   }
@@ -306,7 +308,8 @@ const MobileClientesPage: React.FC = () => {
       telefone: formData.telefone,
       email: formData.email || null,
       cpf: formData.cpf || null,
-      endereco: formData.endereco || null
+      endereco: formData.endereco || null,
+      data_nascimento: formData.data_nascimento || null
     }
 
     if (editingCliente) {
@@ -653,6 +656,18 @@ const MobileClientesPage: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base"
               placeholder="000.000.000-00"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+               Data de Nascimento
+            </label>
+            <input
+              type="date"
+              value={formData.data_nascimento}
+              onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base"
             />
           </div>
 

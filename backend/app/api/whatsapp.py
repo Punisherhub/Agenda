@@ -95,11 +95,13 @@ def send_message(
     - `CONFIRMACAO`: Confirmação do agendamento
     - `CANCELAMENTO`: Notificação de cancelamento
     - `RECICLAGEM`: Campanha de reciclagem de clientes inativos
+    - `ANIVERSARIO`: Mensagem de aniversário
 
     **Placeholders** disponíveis nos templates:
     - `{nome_cliente}`: Nome do cliente
     - `{telefone_cliente}`: Telefone do cliente
     - `{email_cliente}`: Email do cliente
+    - `{endereco}`: Endereço do estabelecimento
     - `{data}`: Data do agendamento (dd/mm/yyyy)
     - `{hora}`: Hora de início (HH:MM)
     - `{hora_fim}`: Hora de término (HH:MM)
@@ -217,3 +219,27 @@ def process_lembretes_cron(
     Retorna estatísticas do processamento (lembretes enviados, falhas, etc.).
     """
     return WhatsAppService.process_lembretes_cron(db=db)
+
+
+# ==================== Aniversários ====================
+
+@router.post("/process-aniversarios-cron")
+def process_aniversarios_cron(
+    db: Session = Depends(get_db)
+):
+    """
+    Processa envio de mensagens de aniversário para clientes.
+
+    **IMPORTANTE**: Este endpoint deve ser chamado por um Cron Job diário (ex: 9h da manhã).
+
+    Busca todos os clientes que fazem aniversário no dia atual e envia mensagem de
+    parabéns, desde que o estabelecimento tenha WhatsApp ativo e enviar_aniversario habilitado.
+
+    **Placeholders** disponíveis no template de aniversário:
+    - `{nome_cliente}`: Nome do cliente
+    - `{endereco}`: Endereço do estabelecimento
+    - `{nome_empresa}`: Nome da empresa/estabelecimento
+
+    Retorna estatísticas do processamento (mensagens enviadas, falhas, etc.).
+    """
+    return WhatsAppService.process_aniversarios_cron(db=db)

@@ -354,6 +354,7 @@ export interface WhatsAppConfig {
   template_conclusao: string | null
   template_cancelamento: string | null
   template_reciclagem: string | null
+  template_aniversario: string | null
   // Configurações
   ativado: boolean
   enviar_agendamento: boolean
@@ -361,6 +362,7 @@ export interface WhatsAppConfig {
   enviar_conclusao: boolean
   enviar_cancelamento: boolean
   enviar_reciclagem: boolean
+  enviar_aniversario: boolean
   meses_inatividade: number
   link_agendamento: string | null
   estabelecimento_id: number
@@ -383,6 +385,7 @@ export interface WhatsAppConfigCreate {
   template_conclusao?: string
   template_cancelamento?: string
   template_reciclagem?: string
+  template_aniversario?: string
   // Configurações
   ativado?: boolean
   enviar_agendamento?: boolean
@@ -390,6 +393,7 @@ export interface WhatsAppConfigCreate {
   enviar_conclusao?: boolean
   enviar_cancelamento?: boolean
   enviar_reciclagem?: boolean
+  enviar_aniversario?: boolean
   meses_inatividade?: number
   link_agendamento?: string
   estabelecimento_id?: number
@@ -410,6 +414,7 @@ export interface WhatsAppConfigUpdate {
   template_conclusao?: string
   template_cancelamento?: string
   template_reciclagem?: string
+  template_aniversario?: string
   // Configurações
   ativado?: boolean
   enviar_agendamento?: boolean
@@ -417,11 +422,12 @@ export interface WhatsAppConfigUpdate {
   enviar_conclusao?: boolean
   enviar_cancelamento?: boolean
   enviar_reciclagem?: boolean
+  enviar_aniversario?: boolean
   meses_inatividade?: number
   link_agendamento?: string
 }
 
-export type TipoMensagemWhatsApp = 'AGENDAMENTO' | 'LEMBRETE' | 'CONFIRMACAO' | 'CANCELAMENTO' | 'RECICLAGEM'
+export type TipoMensagemWhatsApp = 'AGENDAMENTO' | 'LEMBRETE' | 'CONFIRMACAO' | 'CANCELAMENTO' | 'RECICLAGEM' | 'ANIVERSARIO'
 
 export interface WhatsAppMessageRequest {
   cliente_id: number
