@@ -63,6 +63,7 @@ async def listar_agendamentos(
             "status": ag.status,
             "observacoes": ag.observacoes,
             "observacoes_internas": ag.observacoes_internas,
+            "veiculo": ag.veiculo,
             "valor_servico": ag.valor_servico,
             "valor_desconto": ag.valor_desconto,
             "valor_final": ag.valor_final,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, Calendar, Clock, User, Scissors, DollarSign, MessageSquare, MapPin, Phone, Mail, Edit3, Package } from 'lucide-react'
+import { X, Calendar, Clock, User, Scissors, DollarSign, MessageSquare, MapPin, Phone, Mail, Edit3, Package, Car } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Agendamento, Servico, Cliente, ConsumoMaterialCreate, ConsumoMaterial } from '../types'
@@ -332,8 +332,9 @@ const AgendamentoDetailModal: React.FC<AgendamentoDetailModalProps> = ({
 
           {/* Veículo */}
           {agendamento.veiculo && (
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-3">
+            <div className="bg-indigo-50 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-3 flex items-center">
+                <Car className="w-5 h-5 mr-2 text-indigo-600" />
                 Veículo
               </h3>
               <p className="text-sm text-gray-700">{agendamento.veiculo}</p>
