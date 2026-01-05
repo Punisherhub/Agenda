@@ -163,6 +163,7 @@ class AgendamentoService:
             data_fim=data_fim,
             status=StatusAgendamento.AGENDADO,
             observacoes=agendamento_data.observacoes,
+            veiculo=agendamento_data.veiculo,
             valor_servico=valor_servico,
             valor_desconto=valor_desconto,
             valor_final=valor_final,

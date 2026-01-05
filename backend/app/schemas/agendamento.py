@@ -88,6 +88,7 @@ class AgendamentoUpdate(BaseModel):
     status: Optional[StatusAgendamento] = None
     observacoes: Optional[str] = None
     observacoes_internas: Optional[str] = None
+    veiculo: Optional[str] = None
     valor_desconto: Optional[Decimal] = Field(None, ge=0)
     forma_pagamento: Optional[FormaPagamento] = None
     avaliacao_nota: Optional[int] = Field(None, ge=1, le=5)

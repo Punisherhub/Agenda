@@ -288,6 +288,7 @@ class WhatsAppService:
                     logger.info(f"  data_inicio original: {agendamento.data_inicio} (tzinfo: {agendamento.data_inicio.tzinfo})")
                     logger.info(f"  data_inicio_br: {data_inicio_br}")
                     logger.info(f"  hora formatada: {data_inicio_br.strftime('%H:%M')}")
+                    logger.info(f"  veiculo no agendamento: '{agendamento.veiculo}'")
 
                     placeholders.update({
                         'data': data_inicio_br.strftime('%d/%m/%Y'),
@@ -300,7 +301,10 @@ class WhatsAppService:
                         'veiculo': agendamento.veiculo or ''
                     })
 
+                    logger.info(f"[WHATSAPP] Placeholders preparados: {placeholders}")
+
             message_text = WhatsAppService._replace_placeholders(template, placeholders)
+            logger.info(f"[WHATSAPP] Mensagem final após substituir placeholders: {message_text}")
 
         # Formata telefone
         formatted_phone = WhatsAppService._format_phone_number(cliente.telefone)
