@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, Calendar, Clock, User, Scissors, DollarSign, MessageSquare, MapPin, Phone, Mail, Edit3, Trash2, Package } from 'lucide-react'
+import { X, Calendar, Clock, User, Scissors, DollarSign, MessageSquare, MapPin, Phone, Mail, Edit3, Package } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Agendamento, Servico, Cliente, ConsumoMaterialCreate, ConsumoMaterial } from '../types'
