@@ -87,11 +87,35 @@ async def receive_waha_event(
         }
 
     # ========================================
-    # 3. FILTRAR EVENTOS (só processar mensagens)
+    # 3. FILTRAR EVENTOS (processar mensagens + status)
     # ========================================
     event_type = event_data.get("event", "unknown")
 
-    # Ignora eventos que não são mensagens
+    # EVENTOS DE STATUS DA SESSÃO (logar mas não salvar no DB)
+    if event_type in ["session.status", "state.change", "session"]:
+        payload = event_data.get("payload", {})
+        status = payload.get("status", "unknown")
+
+        logger.warning(
+            f"🔔 WAHA STATUS CHANGE - Sessão: {session_name} | "
+            f"Evento: {event_type} | Status: {status} | "
+            f"Payload completo: {payload}"
+        )
+
+        # Alertar se desconectou
+        if status in ["offline", "disconnected", "failed", "stopped"]:
+            logger.error(
+                f"❌ WHATSAPP DESCONECTADO! - Sessão: {session_name} | "
+                f"Status: {status} | Timestamp: {datetime.now()}"
+            )
+
+        return {
+            "status": "logged",
+            "event": event_type,
+            "session_status": status
+        }
+
+    # Ignora outros eventos que não são mensagens
     if not event_type.startswith("message"):
         logger.debug(f"🔕 Evento ignorado (não é mensagem): {event_type}")
         return {

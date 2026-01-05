@@ -105,7 +105,15 @@ class WAHAService:
 
         payload = {
             "name": session_name,
-            "config": {}
+            "config": {
+                # Configurações de persistência (engine NOWEB)
+                "noweb": {
+                    "store": {
+                        "enabled": True,  # Habilita persistência da sessão
+                        "fullHistory": False  # Não salvar histórico completo (economiza espaço)
+                    }
+                }
+            }
         }
 
         # Adiciona webhook se fornecido
@@ -113,7 +121,7 @@ class WAHAService:
             payload["config"]["webhooks"] = [
                 {
                     "url": webhook_url,
-                    "events": ["message.any", "message.ack", "session.status"]
+                    "events": ["message.any", "message.ack", "session.status", "state.change"]
                 }
             ]
 

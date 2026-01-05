@@ -45,9 +45,10 @@ def start_waha_session(
             detail="Configuração WAHA incompleta. Configure URL, API Key e Session Name."
         )
 
-    # TODO: Substituir pela URL real do backend em produção
-    # Por enquanto, webhook será configurado manualmente
-    webhook_url = None  # f"https://seu-backend.railway.app/waha-webhook/events/{config.waha_session_name}"
+    # Configurar webhook para receber notificações de status
+    import os
+    backend_url = os.getenv("BACKEND_URL", "https://agenda-production-fdff.up.railway.app")
+    webhook_url = f"{backend_url}/waha-webhook/events/{config.waha_session_name}"
 
     result = WAHAService.start_session(
         waha_url=config.waha_url,
