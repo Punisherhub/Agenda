@@ -16,7 +16,9 @@ import {
   BeakerIcon,
   CalendarIcon,
   ClockIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from '@heroicons/react/24/outline'
 import MobileLayout from '../layouts/MobileLayout'
 import { whatsappApi } from '../../services/api'
@@ -28,6 +30,7 @@ export default function MobileWAHAPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('config')
   const [testPhone, setTestPhone] = useState('')
   const [testMessage, setTestMessage] = useState('Olá! Esta é uma mensagem de teste.')
+  const [showPlaceholders, setShowPlaceholders] = useState(false)
   const queryClient = useQueryClient()
 
   // States para formulário
@@ -604,6 +607,78 @@ export default function MobileWAHAPage() {
                 </span>
               </p>
             </div>
+
+            {/* Botão Placeholders Disponíveis */}
+            <button
+              type="button"
+              onClick={() => setShowPlaceholders(!showPlaceholders)}
+              className="w-full bg-white border border-blue-200 rounded-lg p-3 flex items-center justify-between active:bg-blue-50 transition-colors"
+            >
+              <span className="font-medium text-blue-900 flex items-center gap-2">
+                <DocumentTextIcon className="w-5 h-5" />
+                Placeholders Disponíveis
+              </span>
+              {showPlaceholders ? (
+                <ChevronUpIcon className="w-5 h-5 text-blue-900" />
+              ) : (
+                <ChevronDownIcon className="w-5 h-5 text-blue-900" />
+              )}
+            </button>
+
+            {/* Lista de Placeholders (retrátil) */}
+            {showPlaceholders && (
+              <div className="bg-white border border-blue-200 rounded-lg p-3 space-y-2">
+                <div className="text-sm text-gray-700">
+                  <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">{'{nome_cliente}'}</code>
+                  <span className="ml-2 text-gray-600">Nome do cliente</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">{'{data}'}</code>
+                  <span className="ml-2 text-gray-600">Data (dd/mm/yyyy)</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">{'{hora}'}</code>
+                  <span className="ml-2 text-gray-600">Horário (HH:MM)</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">{'{servico}'}</code>
+                  <span className="ml-2 text-gray-600">Nome do serviço</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">{'{vendedor}'}</code>
+                  <span className="ml-2 text-gray-600">Nome do vendedor</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">{'{valor}'}</code>
+                  <span className="ml-2 text-gray-600">Valor (R$ XX,XX)</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">{'{veiculo}'}</code>
+                  <span className="ml-2 text-gray-600">Modelo e placa</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">{'{nome_empresa}'}</code>
+                  <span className="ml-2 text-gray-600">Nome da empresa</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">{'{link_agendamento}'}</code>
+                  <span className="ml-2 text-gray-600">Link agendamento</span>
+                </div> 
+                {/*
+                <div className="text-sm text-gray-700 pt-2 border-t border-gray-200">
+                  <strong className="text-gray-900">Extras (apenas reciclagem):</strong>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <code className="bg-purple-100 px-1.5 py-0.5 rounded text-purple-900">{'{meses_inativo}'}</code>
+                  <span className="ml-2 text-gray-600">Meses sem visita</span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <code className="bg-purple-100 px-1.5 py-0.5 rounded text-purple-900">{'{data_ultimo_servico}'}</code>
+                  <span className="ml-2 text-gray-600">Data último serviço</span>   
+                </div>
+                */}
+              </div>
+            )}
 
             {/* Template Agendamento */}
             <div className="bg-white rounded-lg p-4 space-y-3">

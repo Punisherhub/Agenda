@@ -532,6 +532,19 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
             </div>
           )}
 
+          {/* Veículo */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Veículo (Modelo e Placa)
+            </label>
+            <input
+              type="text"
+              {...register('veiculo')}
+              className="input w-full"
+              placeholder="Ex: Honda Civic - ABC1234"
+            />
+          </div>
+
           {/* Data e Hora */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -616,19 +629,6 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
               </div>
             </div>
           )}
-
-          {/* Veículo */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Veículo (Modelo e Placa)
-            </label>
-            <input
-              type="text"
-              {...register('veiculo')}
-              className="input w-full"
-              placeholder="Ex: Honda Civic - ABC1234"
-            />
-          </div>
 
           {/* Desconto */}
           <div>

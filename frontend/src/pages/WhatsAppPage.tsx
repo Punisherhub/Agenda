@@ -621,6 +621,7 @@ export default function WhatsAppPage() {
                 <div><code className="bg-blue-100 px-1 rounded">{'{servico}'}</code> - Nome do serviço</div>
                 <div><code className="bg-blue-100 px-1 rounded">{'{vendedor}'}</code> - Nome do vendedor</div>
                 <div><code className="bg-blue-100 px-1 rounded">{'{valor}'}</code> - Valor (R$ XX,XX)</div>
+                <div><code className="bg-blue-100 px-1 rounded">{'{veiculo}'}</code> - Modelo e placa</div>
                 <div><code className="bg-blue-100 px-1 rounded">{'{nome_empresa}'}</code> - Nome da empresa</div>
                 <div><code className="bg-blue-100 px-1 rounded">{'{link_agendamento}'}</code> - Link agendamento</div>
               </div>
