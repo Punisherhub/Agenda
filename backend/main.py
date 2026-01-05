@@ -60,12 +60,31 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     print("=== ERRO DE VALIDACAO ===")
     print(f"URL: {request.url}")
     print(f"Method: {request.method}")
-    print(f"Erros: {exc.errors()}")
     print(f"Body: {exc.body}")
     print("========================")
+
+    # Extrair erros de forma segura (evitar ValueError não serializável)
+    errors = []
+    for error in exc.errors():
+        error_dict = {
+            "loc": error.get("loc", []),
+            "msg": error.get("msg", ""),
+            "type": error.get("type", "")
+        }
+        # Adicionar input apenas se for serializável
+        if "input" in error:
+            try:
+                error_dict["input"] = str(error["input"])
+            except:
+                error_dict["input"] = "<não serializável>"
+        errors.append(error_dict)
+
+    print(f"Erros formatados: {errors}")
+    print("========================")
+
     return JSONResponse(
         status_code=422,
-        content={"detail": exc.errors()}
+        content={"detail": errors}
     )
 
 # Configuração CORS - Aceita múltiplas origens Railway

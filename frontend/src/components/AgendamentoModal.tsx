@@ -290,6 +290,19 @@ const AgendamentoModal: React.FC<AgendamentoModalProps> = ({
 
   const onSubmit = async (data: any) => {
     try {
+      // Validar campos obrigatórios
+      if (!data.data_inicio_time || !data.data_fim_time) {
+        alert('Por favor, preencha os horários de início e término')
+        return
+      }
+
+      // Validar formato HH:MM
+      const timeRegex = /^\d{2}:\d{2}$/
+      if (!timeRegex.test(data.data_inicio_time) || !timeRegex.test(data.data_fim_time)) {
+        alert('Formato de horário inválido. Use HH:MM')
+        return
+      }
+
       // Validar que hora fim > hora início
       const [horaIni, minIni] = data.data_inicio_time.split(':').map(Number)
       const [horaFim, minFim] = data.data_fim_time.split(':').map(Number)
