@@ -582,6 +582,20 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
           </div>
         )}
 
+        {/* Veículo */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Veículo (Modelo e Placa)
+          </label>
+          <input
+            type="text"
+            value={veiculo}
+            onChange={(e) => setVeiculo(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base"
+            placeholder="Ex: Honda Civic - ABC1234"
+          />
+        </div>
+
         {/* Data e Hora */}
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -668,20 +682,6 @@ const MobileAgendamentoModal: React.FC<MobileAgendamentoModalProps> = ({
             className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base"
             rows={3}
             placeholder="Observações sobre o agendamento..."
-          />
-        </div>
-
-        {/* Veículo */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Veículo (Modelo e Placa)
-          </label>
-          <input
-            type="text"
-            value={veiculo}
-            onChange={(e) => setVeiculo(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base"
-            placeholder="Ex: Honda Civic - ABC1234"
           />
         </div>
 
