@@ -656,7 +656,6 @@ class WhatsAppService:
     def process_aniversarios_cron(db: Session) -> Dict[str, Any]:
         """Processa envio de mensagens de aniversário (CRON)"""
         from zoneinfo import ZoneInfo
-        from sqlalchemy import extract
 
         BRAZIL_TZ = ZoneInfo("America/Sao_Paulo")
 
@@ -672,23 +671,21 @@ class WhatsAppService:
             WhatsAppConfig.enviar_aniversario == True
         ).all()
 
-        # Pega dia e mês atual (Brasil timezone)
+        # Pega dia e mês atual (Brasil timezone) no formato DD/MM
         hoje = datetime.now(BRAZIL_TZ)
-        dia_atual = hoje.day
-        mes_atual = hoje.month
+        data_hoje_formatada = hoje.strftime('%d/%m')  # Formato: "15/03"
 
-        logger.info(f"[ANIVERSARIOS_CRON] Processando aniversariantes. Hoje: {hoje.strftime('%d/%m/%Y')}")
+        logger.info(f"[ANIVERSARIOS_CRON] Processando aniversariantes. Hoje: {hoje.strftime('%d/%m/%Y')} (buscando {data_hoje_formatada})")
 
         for config in configs:
             stats['estabelecimentos_processados'] += 1
 
-            # Busca clientes aniversariantes do dia
+            # Busca clientes aniversariantes do dia (compara string DD/MM)
             clientes_aniversariantes = db.query(Cliente).filter(
                 Cliente.estabelecimento_id == config.estabelecimento_id,
                 Cliente.is_active == True,
-                Cliente.data_nascimento.isnot(None),
-                extract('day', Cliente.data_nascimento) == dia_atual,
-                extract('month', Cliente.data_nascimento) == mes_atual
+                Cliente.data_aniversario.isnot(None),
+                Cliente.data_aniversario == data_hoje_formatada
             ).all()
 
             logger.info(f"[ANIVERSARIOS_CRON] Estabelecimento {config.estabelecimento_id}: {len(clientes_aniversariantes)} aniversariante(s)")

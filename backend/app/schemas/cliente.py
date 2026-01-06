@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
-from datetime import datetime, date
+from datetime import datetime
+import re
 
 
 class ClienteCreate(BaseModel):
@@ -8,7 +9,7 @@ class ClienteCreate(BaseModel):
     telefone: str = Field(..., min_length=10, max_length=20)
     email: Optional[EmailStr] = None
     cpf: Optional[str] = Field(None, min_length=11, max_length=14)
-    data_nascimento: Optional[date] = None
+    data_aniversario: Optional[str] = Field(None, max_length=5, description="Formato DD/MM (ex: 15/03)")
     genero: Optional[str] = Field(None, max_length=20)
     endereco: Optional[str] = None
     cidade: Optional[str] = Field(None, max_length=100)
@@ -17,13 +18,26 @@ class ClienteCreate(BaseModel):
     observacoes: Optional[str] = None
     preferencias: Optional[str] = None
 
+    @field_validator('data_aniversario')
+    @classmethod
+    def validate_data_aniversario(cls, v):
+        if v is None or v == "":
+            return None
+
+        # Validar formato DD/MM
+        pattern = r'^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])$'
+        if not re.match(pattern, v):
+            raise ValueError('Data de aniversário deve estar no formato DD/MM (ex: 15/03)')
+
+        return v
+
 
 class ClienteUpdate(BaseModel):
     nome: Optional[str] = Field(None, min_length=2, max_length=255)
     telefone: Optional[str] = Field(None, min_length=10, max_length=20)
     email: Optional[EmailStr] = None
     cpf: Optional[str] = Field(None, min_length=11, max_length=14)
-    data_nascimento: Optional[date] = None
+    data_aniversario: Optional[str] = Field(None, max_length=5, description="Formato DD/MM (ex: 15/03)")
     genero: Optional[str] = Field(None, max_length=20)
     endereco: Optional[str] = None
     cidade: Optional[str] = Field(None, max_length=100)
@@ -33,6 +47,19 @@ class ClienteUpdate(BaseModel):
     preferencias: Optional[str] = None
     is_active: Optional[bool] = None
 
+    @field_validator('data_aniversario')
+    @classmethod
+    def validate_data_aniversario(cls, v):
+        if v is None or v == "":
+            return None
+
+        # Validar formato DD/MM
+        pattern = r'^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])$'
+        if not re.match(pattern, v):
+            raise ValueError('Data de aniversário deve estar no formato DD/MM (ex: 15/03)')
+
+        return v
+
 
 class ClienteResponse(BaseModel):
     id: int
@@ -40,7 +67,7 @@ class ClienteResponse(BaseModel):
     email: Optional[str] = None
     telefone: str
     cpf: Optional[str] = None
-    data_nascimento: Optional[date] = None
+    data_aniversario: Optional[str] = None
     genero: Optional[str] = None
     endereco: Optional[str] = None
     cidade: Optional[str] = None

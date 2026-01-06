@@ -14,7 +14,7 @@ class Cliente(Base):
     cpf = Column(String(14), nullable=True, index=True)
 
     # Dados pessoais
-    data_nascimento = Column(Date, nullable=True)
+    data_aniversario = Column(String(5), nullable=True)  # Formato DD/MM (ex: "15/03")
     genero = Column(String(20), nullable=True)  # M, F, Outro
     endereco = Column(Text, nullable=True)
     cidade = Column(String(100), nullable=True)

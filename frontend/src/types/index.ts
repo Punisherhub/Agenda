@@ -18,7 +18,7 @@ export interface Cliente {
   email: string | null
   telefone: string
   cpf: string | null
-  data_nascimento: string | null
+  data_aniversario: string | null  // Formato DD/MM (ex: "15/03")
   genero: string | null
   endereco: string | null
   cidade: string | null
@@ -129,7 +129,7 @@ export interface ClienteCreate {
   telefone: string
   email?: string
   cpf?: string
-  data_nascimento?: string
+  data_aniversario?: string  // Formato DD/MM (ex: "15/03")
   genero?: string
   endereco?: string
   cidade?: string

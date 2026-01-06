@@ -21,7 +21,7 @@ const ClienteModal: React.FC<ClienteModalProps> = ({
     telefone: '',
     email: '',
     cpf: '',
-    data_nascimento: '',
+    data_aniversario: '',
     genero: '',
     endereco: '',
     cidade: '',
@@ -39,7 +39,7 @@ const ClienteModal: React.FC<ClienteModalProps> = ({
         telefone: formatTelefone(cliente.telefone),
         email: cliente.email || '',
         cpf: cliente.cpf ? formatCPF(cliente.cpf) : '',
-        data_nascimento: cliente.data_nascimento || '',
+        data_aniversario: cliente.data_aniversario || '',
         genero: cliente.genero || '',
         endereco: cliente.endereco || '',
         cidade: cliente.cidade || '',
@@ -53,7 +53,7 @@ const ClienteModal: React.FC<ClienteModalProps> = ({
         telefone: '',
         email: '',
         cpf: '',
-        data_nascimento: '',
+        data_aniversario: '',
         genero: '',
         endereco: '',
         cidade: '',
@@ -87,7 +87,7 @@ const ClienteModal: React.FC<ClienteModalProps> = ({
         telefone: removeFormatting(formData.telefone),
         email: formData.email?.trim() || undefined,
         cpf: formData.cpf?.trim() ? removeFormatting(formData.cpf) : undefined,
-        data_nascimento: formData.data_nascimento || undefined,
+        data_aniversario: formData.data_aniversario || undefined,
         genero: formData.genero || undefined,
         endereco: formData.endereco?.trim() || undefined,
         cidade: formData.cidade?.trim() || undefined,
@@ -202,13 +202,23 @@ const ClienteModal: React.FC<ClienteModalProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Data de Nascimento
+                  Data de Aniversário
                 </label>
                 <input
-                  type="date"
+                  type="text"
                   className="input"
-                  value={formData.data_nascimento}
-                  onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                  value={formData.data_aniversario}
+                  onChange={(e) => {
+                    // Formatação automática para DD/MM
+                    let value = e.target.value.replace(/\D/g, '')
+                    if (value.length > 4) value = value.slice(0, 4)
+                    if (value.length >= 3) {
+                      value = value.slice(0, 2) + '/' + value.slice(2)
+                    }
+                    setFormData({ ...formData, data_aniversario: value })
+                  }}
+                  placeholder="DD/MM"
+                  maxLength={5}
                 />
               </div>
 

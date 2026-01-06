@@ -48,7 +48,7 @@ const MobileClientesPage: React.FC = () => {
     email: '',
     cpf: '',
     endereco: '',
-    data_nascimento: ''
+    data_aniversario: ''
   })
 
   // Buscar clientes com filtros
@@ -225,11 +225,11 @@ const MobileClientesPage: React.FC = () => {
         email: cliente.email || '',
         cpf: cliente.cpf || '',
         endereco: cliente.endereco || '',
-        data_nascimento: cliente.data_nascimento || ''
+        data_aniversario: cliente.data_aniversario || ''
       })
     } else {
       setEditingCliente(null)
-      setFormData({ nome: '', telefone: '', email: '', cpf: '', endereco: '', data_nascimento: '' })
+      setFormData({ nome: '', telefone: '', email: '', cpf: '', endereco: '', data_aniversario: '' })
     }
     setIsModalOpen(true)
   }
@@ -309,7 +309,7 @@ const MobileClientesPage: React.FC = () => {
       email: formData.email || null,
       cpf: formData.cpf || null,
       endereco: formData.endereco || null,
-      data_nascimento: formData.data_nascimento || null
+      data_aniversario: formData.data_aniversario || null
     }
 
     if (editingCliente) {
@@ -661,12 +661,22 @@ const MobileClientesPage: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-               Data de Nascimento
+               Data de Aniversário
             </label>
             <input
-              type="date"
-              value={formData.data_nascimento}
-              onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+              type="text"
+              value={formData.data_aniversario}
+              onChange={(e) => {
+                // Formatação automática para DD/MM
+                let value = e.target.value.replace(/\D/g, '')
+                if (value.length > 4) value = value.slice(0, 4)
+                if (value.length >= 3) {
+                  value = value.slice(0, 2) + '/' + value.slice(2)
+                }
+                setFormData({ ...formData, data_aniversario: value })
+              }}
+              placeholder="DD/MM"
+              maxLength={5}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base"
             />
           </div>
