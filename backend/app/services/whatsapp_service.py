@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 import logging
+import re
 
 from app.models import WhatsAppConfig, Cliente, Agendamento, User, Estabelecimento
 from app.schemas.whatsapp import (
@@ -107,11 +108,24 @@ class WhatsAppService:
 
     @staticmethod
     def _replace_placeholders(template: str, data: Dict[str, Any]) -> str:
-        """Substitui placeholders no template"""
+        """
+        Substitui placeholders no template.
+        Todos os placeholders são OPCIONAIS - se não existirem nos dados, são removidos.
+        """
         message = template
         for key, value in data.items():
             placeholder = f"{{{key}}}"
-            message = message.replace(placeholder, str(value))
+            # Se valor é None ou vazio, substitui por string vazia
+            safe_value = str(value) if value is not None else ""
+            message = message.replace(placeholder, safe_value)
+
+        # Remove placeholders restantes que não foram fornecidos nos dados
+        # Regex para encontrar {qualquer_coisa} e substituir por vazio
+        message = re.sub(r'\{[^}]+\}', '', message)
+
+        # Limpa espaços duplicados que possam ter sobrado
+        message = re.sub(r'\s+', ' ', message).strip()
+
         return message
 
     # ==================== Envio de Mensagens ====================
@@ -253,9 +267,11 @@ class WhatsAppService:
                 endereco_estabelecimento = estabelecimento.endereco or ''
 
             # Busca dados do agendamento se fornecido
+            # TODOS os placeholders são opcionais - valores None são tratados automaticamente
             placeholders = {
-                'nome_cliente': cliente.nome,
-                'telefone_cliente': cliente.telefone,
+                'nome_cliente': cliente.nome or '',
+                'telefone_cliente': cliente.telefone or '',
+                'email_cliente': cliente.email or '',
                 'nome_empresa': nome_empresa,
                 'endereco': endereco_estabelecimento
             }
@@ -299,11 +315,12 @@ class WhatsAppService:
                     logger.info(f"  hora formatada: {data_inicio_br.strftime('%H:%M')}")
                     logger.info(f"  veiculo no agendamento: '{agendamento.veiculo}'")
 
+                    # Todos os campos são opcionais - valores None/inexistentes são tratados
                     placeholders.update({
-                        'data': data_inicio_br.strftime('%d/%m/%Y'),
-                        'hora': data_inicio_br.strftime('%H:%M'),
+                        'data': data_inicio_br.strftime('%d/%m/%Y') if data_inicio_br else '',
+                        'hora': data_inicio_br.strftime('%H:%M') if data_inicio_br else '',
                         'hora_fim': data_fim_br.strftime('%H:%M') if data_fim_br else '',
-                        'servico': agendamento.servico.nome if agendamento.servico else agendamento.servico_personalizado_nome or '',
+                        'servico': agendamento.servico.nome if agendamento.servico else (agendamento.servico_personalizado_nome or ''),
                         'vendedor': agendamento.vendedor.full_name if agendamento.vendedor else '',
                         'valor': f"R$ {agendamento.valor_final:.2f}" if agendamento.valor_final else '',
                         'status': agendamento.status.value if agendamento.status else '',
@@ -339,16 +356,16 @@ class WhatsAppService:
                     data_ultimo_servico = ultimo_br.strftime('%d/%m/%Y')
 
                     placeholders.update({
-                        'meses_inativo': str(meses_inativo),
-                        'data_ultimo_servico': data_ultimo_servico
+                        'meses_inativo': str(meses_inativo) if meses_inativo else '0',
+                        'data_ultimo_servico': data_ultimo_servico or ''
                     })
 
                     logger.info(f"[WHATSAPP] Placeholders reciclagem: meses={meses_inativo}, data={data_ultimo_servico}")
                 else:
                     # Se não tem agendamento anterior, usar valores padrão
                     placeholders.update({
-                        'meses_inativo': '0',
-                        'data_ultimo_servico': 'N/A'
+                        'meses_inativo': '',
+                        'data_ultimo_servico': ''
                     })
 
             message_text = WhatsAppService._replace_placeholders(template, placeholders)

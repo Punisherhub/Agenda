@@ -8,8 +8,9 @@ from app.api import auth, users, empresas, estabelecimentos, servicos, clientes,
 from app.config import settings
 from app.database import engine, Base, SessionLocal
 from app.services.keepalive_service import KeepAliveService
+from app.services.whatsapp_service import WhatsAppService
 
-# Scheduler global para keep-alive
+# Scheduler global para keep-alive e aniversários
 scheduler = BackgroundScheduler()
 
 
@@ -24,11 +25,26 @@ def scheduled_waha_ping():
         db.close()
 
 
+def scheduled_aniversarios():
+    """Job agendado para verificar e enviar mensagens de aniversário diariamente"""
+    db = SessionLocal()
+    try:
+        print("[SCHEDULER] Executando verificação de aniversários...")
+        stats = WhatsAppService.process_aniversarios_cron(db)
+        print(f"[SCHEDULER] Aniversários processados: {stats}")
+    except Exception as e:
+        print(f"[SCHEDULER] Erro ao processar aniversários: {str(e)}")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gerencia ciclo de vida da aplicação"""
     # Startup: Iniciar scheduler
-    print("[STARTUP] Iniciando scheduler de keep-alive...")
+    print("[STARTUP] Iniciando schedulers...")
+
+    # Job 1: Keep-alive WAHA (a cada 10 minutos)
     scheduler.add_job(
         scheduled_waha_ping,
         'interval',
@@ -36,15 +52,29 @@ async def lifespan(app: FastAPI):
         id='waha_keepalive',
         replace_existing=True
     )
+    print("[STARTUP] Scheduler WAHA keep-alive configurado (a cada 10 minutos)")
+
+    # Job 2: Verificação de aniversários (diariamente às 9h - horário de Brasília)
+    scheduler.add_job(
+        scheduled_aniversarios,
+        'cron',
+        hour=9,
+        minute=0,
+        timezone='America/Sao_Paulo',
+        id='aniversarios_diarios',
+        replace_existing=True
+    )
+    print("[STARTUP] Scheduler de aniversarios configurado (diariamente as 09:00 BRT)")
+
     scheduler.start()
-    print("[STARTUP] Scheduler iniciado - Pings a cada 10 minutos")
+    print("[STARTUP] Schedulers iniciados com sucesso!")
 
     yield  # Aplicação rodando
 
     # Shutdown: Parar scheduler
-    print("[SHUTDOWN] Parando scheduler...")
+    print("[SHUTDOWN] Parando schedulers...")
     scheduler.shutdown()
-    print("[SHUTDOWN] Scheduler parado")
+    print("[SHUTDOWN] Schedulers parados")
 
 app = FastAPI(
     title="Agenda OnSell API",

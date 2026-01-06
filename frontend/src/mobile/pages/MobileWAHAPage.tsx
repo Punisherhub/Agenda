@@ -43,12 +43,14 @@ export default function MobileWAHAPage() {
     template_conclusao: '',
     template_cancelamento: '',
     template_reciclagem: '',
+    template_aniversario: '',
     ativado: false,
     enviar_agendamento: true,
     enviar_lembrete: true,
     enviar_conclusao: true,
     enviar_cancelamento: true,
     enviar_reciclagem: false,
+    enviar_aniversario: false,
     meses_inatividade: 3,
     link_agendamento: '',
   })
@@ -69,12 +71,14 @@ export default function MobileWAHAPage() {
             template_conclusao: configData.template_conclusao || '',
             template_cancelamento: configData.template_cancelamento || '',
             template_reciclagem: configData.template_reciclagem || '',
+            template_aniversario: configData.template_aniversario || '',
             ativado: configData.ativado,
             enviar_agendamento: configData.enviar_agendamento,
             enviar_lembrete: configData.enviar_lembrete,
             enviar_conclusao: configData.enviar_conclusao,
             enviar_cancelamento: configData.enviar_cancelamento,
             enviar_reciclagem: configData.enviar_reciclagem,
+            enviar_aniversario: configData.enviar_aniversario,
             meses_inatividade: configData.meses_inatividade,
             link_agendamento: configData.link_agendamento || '',
           })
@@ -537,6 +541,16 @@ export default function MobileWAHAPage() {
                     />
                     <span className="text-sm text-gray-700">Cancelamento</span>
                   </label>
+
+                  <label className="flex items-center gap-3 active:bg-gray-50 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={formData.enviar_aniversario}
+                      onChange={(e) => setFormData({ ...formData, enviar_aniversario: e.target.checked })}
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-700">Aniversário</span>
+                  </label>
                 </div>
               </div>
 
@@ -675,6 +689,11 @@ export default function MobileWAHAPage() {
                   <code className="bg-purple-100 px-1.5 py-0.5 rounded text-purple-900">{'{data_ultimo_servico}'}</code>
                   <span className="ml-2 text-gray-600">Data último serviço</span>
                 </div>
+                <div className="text-sm text-gray-700 pt-2 border-t border-gray-200">
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                    Todos os placeholders são opcionais
+                  </span>
+                </div>
               </div>
             )}
 
@@ -752,6 +771,24 @@ export default function MobileWAHAPage() {
                 onChange={(e) => setFormData({ ...formData, template_reciclagem: e.target.value })}
                 rows={6}
                 placeholder="Olá {nome_cliente}! Sentimos sua falta..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base"
+              />
+            </div>
+
+            {/* Template Aniversário */}
+            <div className="bg-white rounded-lg p-4 space-y-3">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <CalendarIcon className="w-5 h-5 text-purple-600" />
+                Aniversário
+              </h3>
+              <p className="text-xs text-gray-600">
+                Enviado automaticamente no dia do aniversário (09:00 BRT)
+              </p>
+              <textarea
+                value={formData.template_aniversario}
+                onChange={(e) => setFormData({ ...formData, template_aniversario: e.target.value })}
+                rows={6}
+                placeholder="Parabéns {nome_cliente}! Feliz aniversário!"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base"
               />
             </div>
